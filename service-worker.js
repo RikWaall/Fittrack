@@ -1,6 +1,6 @@
-var CACHE_NAME = 'fittrack-v1';
+var CACHE_NAME = 'fittrack-v2';
 var APP_SHELL = [
-  './fittrack.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -30,9 +30,14 @@ self.addEventListener('fetch', function(event){
   if(url.indexOf('openfoodfacts.org') !== -1 || url.indexOf('googleapis.com') !== -1 || url.indexOf('gstatic.com') !== -1 || url.indexOf('jsdelivr.net') !== -1){
     return;
   }
+  // Netwerk-eerst voor de app-shell, zodat updates altijd doorkomen; cache is alleen de offline-fallback.
   event.respondWith(
-    caches.match(event.request).then(function(cached){
-      return cached || fetch(event.request);
+    fetch(event.request).then(function(res){
+      var resClone = res.clone();
+      caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, resClone); });
+      return res;
+    }).catch(function(){
+      return caches.match(event.request);
     })
   );
 });

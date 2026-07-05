@@ -2,7 +2,7 @@
   "name": "FitTrack",
   "short_name": "FitTrack",
   "description": "Trainings- en voedingstracker",
-  "start_url": "./fittrack.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#131319",

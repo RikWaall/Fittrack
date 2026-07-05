@@ -1291,53 +1291,68 @@
     document.getElementById('manualBarcode').value = '';
     STATE.pendingProduct = null;
 
-    if(typeof ZXing === 'undefined'){
-      statusEl.textContent = 'De scanner kon niet laden (mogelijk geen internetverbinding). Voer de barcode hieronder handmatig in.';
+    var startTimeout = null;
+
+    function fail(msg, err){
+      if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
+      if(err){ console.error('Barcode scanner fout:', err); }
+      statusEl.textContent = msg;
       video.style.display = 'none';
-      return;
-    }
-    if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
-      statusEl.textContent = 'Camera vereist een beveiligde (https) verbinding. Voer de barcode hieronder handmatig in.';
-      video.style.display = 'none';
-      return;
-    }
-
-    video.style.display = 'block';
-    statusEl.textContent = 'Camera wordt gestart…';
-    if(!zxingReader){ zxingReader = new ZXing.BrowserMultiFormatReader(); }
-
-    function handleFrame(result){
-      if(result){
-        var code = result.getText();
-        statusEl.textContent = 'Barcode gevonden: ' + code;
-        stopCamera();
-        lookupBarcode(code);
-      }
-    }
-
-    function tryConstraints(constraints, isFallback){
-      zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
-        .then(function(){
-          if(overlay.classList.contains('active') && video.style.display !== 'none'){
-            statusEl.textContent = 'Richt de camera op de barcode…';
-          }
-        })
-        .catch(function(e){
-          if(!isFallback){
-            tryConstraints({ video: true }, true);
-          } else {
-            var reason = (e && e.name) ? e.name : 'onbekende fout';
-            statusEl.textContent = 'Kon de camera niet openen (' + reason + '). Voer de barcode hieronder handmatig in.';
-            video.style.display = 'none';
-          }
-        });
     }
 
     try{
+      if(typeof ZXing === 'undefined'){
+        fail('De scanner kon niet laden (mogelijk geen internetverbinding). Voer de barcode hieronder handmatig in.');
+        return;
+      }
+      if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+        fail('Camera vereist een beveiligde (https) verbinding. Voer de barcode hieronder handmatig in.');
+        return;
+      }
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        fail('Deze browser ondersteunt geen camera-toegang. Voer de barcode hieronder handmatig in.');
+        return;
+      }
+
+      video.style.display = 'block';
+      statusEl.textContent = 'Camera wordt gestart…';
+      if(!zxingReader){ zxingReader = new ZXing.BrowserMultiFormatReader(); }
+
+      startTimeout = setTimeout(function(){
+        fail('Camera reageert niet. Sluit dit scherm en probeer opnieuw, of voer de barcode handmatig in.');
+      }, 8000);
+
+      function handleFrame(result){
+        if(result){
+          if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
+          var code = result.getText();
+          statusEl.textContent = 'Barcode gevonden: ' + code;
+          stopCamera();
+          lookupBarcode(code);
+        }
+      }
+
+      function tryConstraints(constraints, isFallback){
+        zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
+          .then(function(){
+            if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
+            if(overlay.classList.contains('active') && video.style.display !== 'none'){
+              statusEl.textContent = 'Richt de camera op de barcode…';
+            }
+          })
+          .catch(function(e){
+            if(!isFallback){
+              tryConstraints({ video: true }, true);
+            } else {
+              var reason = (e && e.name) ? e.name : ((e && e.message) ? e.message : 'onbekende fout');
+              fail('Kon de camera niet openen (' + reason + '). Voer de barcode hieronder handmatig in.', e);
+            }
+          });
+      }
+
       tryConstraints({ video: { facingMode: { ideal: 'environment' } } }, false);
     }catch(e){
-      statusEl.textContent = 'Kon de camera niet openen. Voer de barcode hieronder handmatig in.';
-      video.style.display = 'none';
+      fail('Kon de scanner niet starten (' + (e && e.message ? e.message : 'onbekende fout') + '). Voer de barcode hieronder handmatig in.', e);
     }
   }
 
