@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FitTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="theme-color" content="#131319">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitTrack">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+  :root{
+    --bg:#131319;
+    --surface:#1C1D25;
+    --surface-2:#25272F;
+    --border:#33343E;
+    --text:#F4F3EF;
+    --text-muted:#8C8D97;
+    --lime:#C6FF3D;
+    --lime-dim:#8FB82C;
+    --blue:#4EA1FF;
+    --amber:#FFB648;
+    --pink:#FF6BC1;
+    --danger:#FF5C5C;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .shell{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    padding-bottom:84px;
+    position:relative;
+  }
+  header.top{
+    padding:22px 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  header.top .brand{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  header.top .brand span{color:var(--lime);}
+  .datebar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 20px 4px;
+    gap:10px;
+  }
+  .datebar button{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    width:36px;height:36px;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+  }
+  .datebar button:active{transform:scale(0.94);}
+  .datebar .datelabel{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    color:var(--text-muted);
+  }
+  .datebar .datelabel b{color:var(--text);}
+  main{padding:12px 20px 30px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h3{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--text-muted);
+    margin:0 0 12px;
+    font-weight:500;
+  }
+  .card h3 .sub{ text-transform:none; letter-spacing:0; color:var(--text-muted); font-size:12px; }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--text-muted);
+    margin-bottom:5px;
+  }
+  input[type=text], input[type=number], input[type=date]{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  input:focus{outline:2px solid var(--lime); outline-offset:1px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .field{margin-bottom:12px;}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    width:100%;
+    padding:12px 14px;
+    border-radius:10px;
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--lime); color:#101207;}
+  .btn-primary:active{background:var(--lime-dim);}
+  .btn-ghost{background:var(--surface-2); color:var(--text); border:1px solid var(--border);}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid var(--danger); width:auto; padding:6px 10px; font-size:12px;}
+  .btn-small{width:auto; padding:8px 12px; font-size:13px;}
+  .pickrow{display:flex; gap:8px;}
+  .pickrow input{flex:1;}
+  .pickrow .btn{width:auto; padding:10px 14px; white-space:nowrap;}
+
+  .exrow-preview{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    background:var(--surface-2); border-radius:10px; padding:8px 10px;
+    min-height:44px;
+  }
+  .exrow-preview .poseicon{width:34px;height:28px;flex-shrink:0;}
+  .exrow-preview .posetext{font-size:12px; color:var(--text-muted);}
+
+  .setrow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 0;
+    border-top:1px solid var(--border);
+    gap:10px;
+  }
+  .setrow:first-of-type{border-top:none;}
+  .setrow .setleft{display:flex; align-items:center; gap:10px; min-width:0;}
+  .setrow .poseicon{width:32px;height:26px;flex-shrink:0;}
+  .setrow .exname{font-weight:600; font-size:14px;}
+  .setrow .exmeta{font-family:'Space Mono',monospace; font-size:13px; color:var(--text-muted); display:flex; align-items:center; gap:5px;}
+  .setrow .exmeta input{width:52px; padding:4px 6px; font-size:12px; text-align:right;}
+  .setrow .del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px 6px;flex-shrink:0;}
+
+  .gaugerow{display:flex; justify-content:space-between; gap:8px; margin-bottom:6px;}
+  .gauge{text-align:center; flex:1;}
+  .gauge svg{width:64px;height:64px;}
+  .gauge .glabel{font-size:11px; color:var(--text-muted); margin-top:4px; text-transform:uppercase; letter-spacing:0.3px;}
+  .gauge .gval{font-family:'Space Mono',monospace; font-size:12px; margin-top:1px;}
+
+  .foodrow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border-top:1px solid var(--border);
+  }
+  .foodrow:first-of-type{border-top:none;}
+  .foodrow .fname{font-weight:600; font-size:14px;}
+  .foodrow .fmeta{font-family:'Space Mono',monospace; font-size:12px; color:var(--text-muted); margin-top:2px;}
+
+  .empty{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:20px 0;
+  }
+
+  nav.bottom{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:480px;
+    margin:0 auto;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    display:flex;
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+    gap:4px;
+  }
+  nav.bottom button{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--text-muted);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    padding:6px 0;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    font-size:10.5px;
+    border-radius:10px;
+  }
+  nav.bottom button.active{color:var(--lime); background:rgba(198,255,61,0.08);}
+  nav.bottom svg{width:19px;height:19px;}
+
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.7);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    width:100%;
+    max-width:420px;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:18px;
+  }
+  .modal h3{font-family:'Oswald',sans-serif; font-size:16px; margin:0 0 12px; text-transform:uppercase;}
+  .modal video{width:100%; border-radius:10px; background:#000; margin-bottom:10px;}
+  .scan-status{font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:10px;}
+  .modal .closebtn{
+    background:none;border:none;color:var(--text-muted);float:right;font-size:20px;cursor:pointer;line-height:1;
+  }
+  .productcard{
+    background:var(--surface-2);
+    border-radius:10px;
+    padding:12px;
+    margin-top:10px;
+  }
+  .productcard .pname{font-weight:600; font-size:15px;}
+  .productcard .pbrand{font-size:12px; color:var(--text-muted); margin-bottom:8px;}
+  .productcard .pmacros{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+    margin-bottom:10px;
+  }
+  .divider{text-align:center; color:var(--text-muted); font-size:11px; margin:14px 0; text-transform:uppercase; letter-spacing:0.5px;}
+  .toast{
+    position:fixed;
+    bottom:96px; left:50%; transform:translateX(-50%);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 16px;
+    border-radius:10px;
+    font-size:13px;
+    z-index:60;
+    opacity:0;
+    transition:opacity 0.2s;
+    pointer-events:none;
+    max-width:90%;
+    text-align:center;
+  }
+  .toast.show{opacity:1;}
+
+  .daytabs{display:flex; gap:5px; margin-bottom:12px; flex-wrap:wrap;}
+  .daytabs button{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted);
+    padding:7px 0; border-radius:8px; font-size:12px; cursor:pointer; flex:1; min-width:36px;
+  }
+  .weekcard-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .weekcard-head .wname{font-family:'Oswald',sans-serif; font-size:15px; text-transform:uppercase;}
+  .plannedrow{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 0; border-top:1px solid var(--border);
+  }
+  .plannedrow:first-of-type{border-top:none;}
+  .plannedrow .pleft{display:flex; align-items:center; gap:10px; min-width:0;}
+  .plannedrow .poseicon{width:30px;height:24px;flex-shrink:0;}
+  .plannedrow .checkwrap{flex-shrink:0; display:flex; align-items:center;}
+  .plannedrow .checkwrap input{width:22px;height:22px; accent-color:var(--lime); cursor:pointer;}
+  .plannedrow.done .exname{color:var(--text-muted); text-decoration:line-through;}
+
+  .chiprow{display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:4px;}
+  .chip{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted);
+    padding:7px 14px; border-radius:20px; font-size:12px; white-space:nowrap; cursor:pointer; flex-shrink:0;
+  }
+  .chip.active{background:var(--lime); color:#101207; border-color:var(--lime); font-weight:600;}
+  .pickergrid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .pickercard{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    padding:14px 8px; display:flex; flex-direction:column; align-items:center; gap:8px;
+    cursor:pointer; color:var(--text);
+  }
+  .pickercard:active{border-color:var(--lime);}
+  .pickercard svg{width:72px;height:52px;}
+  .pickercard span{font-size:12.5px; font-weight:600; text-align:center; line-height:1.3;}
+
+  select{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  select:focus{outline:2px solid var(--lime); outline-offset:1px;}
+  .calcresult{
+    background:var(--surface-2);
+    border-radius:10px;
+    padding:14px;
+    margin-top:14px;
+  }
+  .calcresult .ckcal{font-family:'Oswald',sans-serif; font-size:26px; text-transform:uppercase; letter-spacing:0.3px;}
+  .calcresult .ckcal span{color:var(--lime);}
+  .calcresult .cmacros{
+    display:flex; justify-content:space-between; margin-top:10px; gap:8px;
+  }
+  .calcresult .cmacros div{ text-align:center; flex:1; }
+  .calcresult .cmacros .cval{font-family:'Space Mono',monospace; font-size:15px; font-weight:700;}
+  .calcresult .cmacros .clabel{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; margin-top:2px;}
+  .calcresult .cnote{font-size:12px; color:var(--text-muted); margin-top:10px; line-height:1.5;}
+  .calcresult .btn{margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand">Fit<span>Track</span></div>
+  </header>
+
+  <div class="datebar">
+    <button id="prevDay" aria-label="Vorige dag">‹</button>
+    <div class="datelabel" id="dateLabel">Vandaag</div>
+    <button id="nextDay" aria-label="Volgende dag">›</button>
+  </div>
+
+  <main>
+    <!-- TRAINING -->
+    <section class="view" id="view-training">
+      <div class="card" id="plannedCard" style="display:none;">
+        <h3>Gepland vandaag <span class="sub" id="plannedSub"></span></h3>
+        <div id="plannedList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Set toevoegen</h3>
+        <div class="field">
+          <label for="exName">Oefening</label>
+          <div class="pickrow">
+            <input type="text" id="exName" placeholder="Typ of kies uit lijst">
+            <button class="btn btn-ghost" id="chooseExBtn">Kies</button>
+          </div>
+        </div>
+        <div class="exrow-preview" id="exPreview" style="display:none;"></div>
+        <div class="row3">
+          <div class="field"><label for="exSets">Sets</label><input type="number" id="exSets" min="1" value="3"></div>
+          <div class="field"><label for="exReps">Reps</label><input type="number" id="exReps" min="1" value="10"></div>
+          <div class="field"><label for="exWeight">Kg</label><input type="number" id="exWeight" min="0" step="0.5" value="20"></div>
+        </div>
+        <button class="btn btn-primary" id="addSetBtn">Set toevoegen</button>
+      </div>
+      <div class="card">
+        <h3>Log van deze dag</h3>
+        <div id="setList"></div>
+      </div>
+    </section>
+
+    <!-- SCHEMA -->
+    <section class="view" id="view-schema">
+      <div class="card">
+        <h3>Programma</h3>
+        <div class="field">
+          <label for="startDateInput">Actief vanaf</label>
+          <input type="date" id="startDateInput">
+        </div>
+        <button class="btn btn-ghost" id="saveStartDateBtn">Startdatum opslaan</button>
+      </div>
+      <div id="weeksContainer"></div>
+      <button class="btn btn-primary" id="addWeekBtn">+ Week toevoegen</button>
+    </section>
+
+    <!-- VOEDING -->
+    <section class="view" id="view-nutrition">
+      <div class="card">
+        <h3>Vandaag binnengekregen</h3>
+        <div class="gaugerow" id="gaugeRow"></div>
+      </div>
+      <div class="card">
+        <div class="row2">
+          <button class="btn btn-primary" id="scanBtn">Barcode scannen</button>
+          <button class="btn btn-ghost" id="addManualFoodBtn">Handmatig toevoegen</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Gegeten vandaag</h3>
+        <div id="foodList"></div>
+      </div>
+    </section>
+
+    <!-- DOELEN -->
+    <section class="view" id="view-goals">
+      <div class="card">
+        <h3>Bereken je doelen</h3>
+        <div class="row2">
+          <div class="field">
+            <label for="calcGender">Geslacht</label>
+            <select id="calcGender">
+              <option value="man">Man</option>
+              <option value="vrouw">Vrouw</option>
+            </select>
+          </div>
+          <div class="field"><label for="calcAge">Leeftijd</label><input type="number" id="calcAge" min="10" max="100" value="30"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="calcWeight">Gewicht (kg)</label><input type="number" id="calcWeight" min="30" step="0.5" value="75"></div>
+          <div class="field"><label for="calcHeight">Lengte (cm)</label><input type="number" id="calcHeight" min="120" max="230" value="178"></div>
+        </div>
+        <div class="field">
+          <label for="calcActivity">Activiteitsniveau</label>
+          <select id="calcActivity">
+            <option value="sedentary">Weinig actief (zittend werk, geen sport)</option>
+            <option value="light">Licht actief (1-3x sport per week)</option>
+            <option value="moderate" selected>Matig actief (3-5x sport per week)</option>
+            <option value="active">Actief (6-7x sport per week)</option>
+            <option value="veryactive">Zeer actief (zwaar lichamelijk werk of dagelijks trainen)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="calcGoal">Doel</label>
+          <select id="calcGoal">
+            <option value="cut">Afvallen</option>
+            <option value="maintain">Gewicht behouden</option>
+            <option value="bulk">Spiermassa opbouwen</option>
+            <option value="strength">Krachtsport</option>
+            <option value="endurance">Duursport (hardlopen, fietsen, zwemmen)</option>
+            <option value="team">Teamsport</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost" id="calcBtn">Bereken</button>
+        <div id="calcResult"></div>
+      </div>
+
+      <div class="card">
+        <h3>Dagelijkse doelen</h3>
+        <div class="field"><label for="goalKcal">Calorieën (kcal)</label><input type="number" id="goalKcal" min="0"></div>
+        <div class="row3">
+          <div class="field"><label for="goalProtein">Eiwit (g)</label><input type="number" id="goalProtein" min="0"></div>
+          <div class="field"><label for="goalCarbs">Koolhydraten (g)</label><input type="number" id="goalCarbs" min="0"></div>
+          <div class="field"><label for="goalFat">Vet (g)</label><input type="number" id="goalFat" min="0"></div>
+        </div>
+        <button class="btn btn-primary" id="saveGoalsBtn">Doelen opslaan</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom">
+    <button class="navbtn active" data-view="training">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M2 10v4M22 10v4M6 12h12"/></svg>
+      Training
+    </button>
+    <button class="navbtn" data-view="schema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+      Schema
+    </button>
+    <button class="navbtn" data-view="nutrition">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 1.5 1 3 0 4M6 8c-2.5 0-4 2.5-4 6 0 4 2.5 7 5 7 1.3 0 1.7-.8 3-.8s1.7.8 3 .8c2.5 0 5-3 5-7.5 0-3.2-1.8-5.5-4-5.5-1.3 0-2 .6-3 .6s-1.7-.6-3-.6c-.5 0-1 .1-1 0"/></svg>
+      Voeding
+    </button>
+    <button class="navbtn" data-view="goals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5" fill="currentColor"/></svg>
+      Doelen
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="pickerOverlay">
+  <div class="modal">
+    <button class="closebtn" id="closePicker">&times;</button>
+    <h3>Kies een oefening</h3>
+    <div class="field"><input type="text" id="pickerSearch" placeholder="Zoeken…"></div>
+    <div class="chiprow" id="pickerChips"></div>
+    <div class="pickergrid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="manualFoodOverlay">
+  <div class="modal">
+    <button class="closebtn" id="closeManualFood">&times;</button>
+    <h3>Voedingsmiddel toevoegen</h3>
+    <div class="field"><label for="mfName">Naam</label><input type="text" id="mfName" placeholder="Bijv. zelfgemaakte pasta"></div>
+    <div class="divider">Voedingswaarde per 100 gram/ml</div>
+    <div class="row2">
+      <div class="field"><label for="mfKcal">Kcal</label><input type="number" id="mfKcal" min="0" value="0"></div>
+      <div class="field"><label for="mfProtein">Eiwit (g)</label><input type="number" id="mfProtein" min="0" step="0.1" value="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="mfCarbs">Koolhydraten (g)</label><input type="number" id="mfCarbs" min="0" step="0.1" value="0"></div>
+      <div class="field"><label for="mfFat">Vet (g)</label><input type="number" id="mfFat" min="0" step="0.1" value="0"></div>
+    </div>
+    <div class="divider">Hoeveelheid gegeten/gedronken</div>
+    <div class="field">
+      <div class="pickrow">
+        <input type="number" id="mfAmount" min="1" value="100">
+        <select id="mfUnit" style="width:80px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 6px; font-size:15px;">
+          <option value="g">gram</option>
+          <option value="ml">ml</option>
+        </select>
+      </div>
+    </div>
+    <div class="productcard" id="mfPreview"></div>
+    <button class="btn btn-primary" id="mfAddBtn">Toevoegen aan vandaag</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scanOverlay">
+  <div class="modal">
+    <button class="closebtn" id="closeScan">&times;</button>
+    <h3>Barcode scannen</h3>
+    <video id="scanVideo" autoplay playsinline muted></video>
+    <div class="scan-status" id="scanStatus">Camera wordt gestart…</div>
+    <div class="field">
+      <label for="manualBarcode">Of voer de barcode handmatig in</label>
+      <input type="text" id="manualBarcode" placeholder="Bijv. 8710398503968" inputmode="numeric">
+    </div>
+    <button class="btn btn-ghost" id="manualLookupBtn">Opzoeken</button>
+    <div id="productResult"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var DAY_NAMES = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
+
+  var POSES = {
+    push: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><line x1="8" y1="58" x2="92" y2="58"/><circle cx="22" cy="52" r="6" fill="none"/><line x1="28" y1="52" x2="62" y2="50"/><line x1="62" y1="50" x2="78" y2="36"/><line x1="78" y1="36" x2="70" y2="58"/><line x1="40" y1="51" x2="40" y2="20"/><line x1="55" y1="50" x2="55" y2="20"/><line x1="28" y1="20" x2="67" y2="20"/><circle cx="28" cy="20" r="5"/><circle cx="67" cy="20" r="5"/></svg>',
+    pull: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="30" cy="14" r="6" fill="none"/><line x1="30" y1="20" x2="42" y2="42"/><line x1="42" y1="42" x2="38" y2="64"/><line x1="42" y1="42" x2="58" y2="64"/><line x1="34" y1="28" x2="14" y2="22"/><line x1="34" y1="28" x2="16" y2="40"/><line x1="8" y1="10" x2="8" y2="50"/></svg>',
+    squat: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="50" cy="12" r="6" fill="none"/><line x1="50" y1="18" x2="50" y2="38"/><line x1="35" y1="18" x2="65" y2="18"/><circle cx="33" cy="18" r="4"/><circle cx="67" cy="18" r="4"/><line x1="50" y1="38" x2="34" y2="50"/><line x1="34" y1="50" x2="38" y2="66"/><line x1="50" y1="38" x2="66" y2="50"/><line x1="66" y1="50" x2="62" y2="66"/></svg>',
+    hinge: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="26" cy="22" r="6" fill="none"/><line x1="30" y1="27" x2="62" y2="42"/><line x1="62" y1="42" x2="60" y2="64"/><line x1="62" y1="42" x2="76" y2="64"/><line x1="36" y1="34" x2="30" y2="58"/><circle cx="30" cy="58" r="4"/><line x1="36" y1="34" x2="10" y2="58"/><circle cx="10" cy="58" r="4"/></svg>',
+    lunge: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="42" cy="12" r="6" fill="none"/><line x1="42" y1="18" x2="46" y2="38"/><line x1="46" y1="38" x2="26" y2="50"/><line x1="26" y1="50" x2="30" y2="66"/><line x1="46" y1="38" x2="70" y2="44"/><line x1="70" y1="44" x2="66" y2="66"/><line x1="44" y1="24" x2="26" y2="18"/><line x1="44" y1="24" x2="60" y2="12"/></svg>',
+    core: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="16" cy="46" r="6" fill="none"/><line x1="22" y1="44" x2="70" y2="36"/><line x1="70" y1="36" x2="88" y2="52"/><line x1="30" y1="44" x2="26" y2="60"/><line x1="50" y1="40" x2="48" y2="60"/></svg>',
+    cardio: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="58" cy="12" r="6" fill="none"/><line x1="56" y1="18" x2="44" y2="38"/><line x1="44" y1="38" x2="58" y2="52"/><line x1="58" y1="52" x2="50" y2="66"/><line x1="44" y1="38" x2="24" y2="46"/><line x1="50" y1="24" x2="68" y2="18"/><line x1="50" y1="24" x2="38" y2="12"/></svg>',
+    curl: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="50" cy="12" r="6" fill="none"/><line x1="50" y1="18" x2="48" y2="46"/><line x1="48" y1="46" x2="40" y2="66"/><line x1="48" y1="46" x2="58" y2="66"/><line x1="50" y1="24" x2="66" y2="30"/><line x1="66" y1="30" x2="58" y2="16"/><circle cx="58" cy="16" r="5"/><line x1="50" y1="24" x2="34" y2="34"/></svg>',
+    lat_pulldown: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="3.5" stroke-linecap="round"><line x1="85" y1="4" x2="85" y2="66"/><circle cx="85" cy="8" r="4" fill="none"/><line x1="30" y1="62" x2="56" y2="62"/><circle cx="45" cy="20" r="6" fill="none"/><line x1="45" y1="26" x2="45" y2="50"/><line x1="45" y1="50" x2="35" y2="62"/><line x1="35" y1="62" x2="50" y2="66"/><line x1="45" y1="50" x2="58" y2="60"/><line x1="45" y1="30" x2="28" y2="13"/><line x1="45" y1="30" x2="62" y2="13"/><line x1="24" y1="13" x2="66" y2="13"/><line x1="45" y1="13" x2="85" y2="8"/></svg>',
+    cable_row: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="3.5" stroke-linecap="round"><line x1="10" y1="66" x2="10" y2="28"/><circle cx="10" cy="62" r="4" fill="none"/><line x1="18" y1="66" x2="18" y2="48"/><circle cx="70" cy="30" r="6" fill="none"/><line x1="66" y1="36" x2="52" y2="52"/><line x1="52" y1="52" x2="20" y2="58"/><line x1="52" y1="52" x2="18" y2="50"/><line x1="63" y1="42" x2="38" y2="46"/><line x1="38" y1="46" x2="10" y2="62"/></svg>',
+    cable_tricep: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="3.5" stroke-linecap="round"><line x1="85" y1="4" x2="85" y2="55"/><circle cx="85" cy="8" r="4" fill="none"/><circle cx="30" cy="12" r="6" fill="none"/><line x1="30" y1="18" x2="30" y2="45"/><line x1="30" y1="45" x2="22" y2="66"/><line x1="30" y1="45" x2="40" y2="66"/><line x1="30" y1="24" x2="45" y2="32"/><line x1="45" y1="32" x2="50" y2="52"/><line x1="50" y1="52" x2="85" y2="8"/></svg>',
+    cable_curl: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="3.5" stroke-linecap="round"><line x1="85" y1="20" x2="85" y2="66"/><circle cx="85" cy="62" r="4" fill="none"/><circle cx="30" cy="12" r="6" fill="none"/><line x1="30" y1="18" x2="30" y2="48"/><line x1="30" y1="48" x2="22" y2="66"/><line x1="30" y1="48" x2="40" y2="66"/><line x1="30" y1="26" x2="42" y2="34"/><line x1="42" y1="34" x2="35" y2="18"/><line x1="35" y1="18" x2="85" y2="62"/></svg>',
+    cable_fly: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="3.5" stroke-linecap="round"><line x1="8" y1="10" x2="8" y2="60"/><circle cx="8" cy="26" r="4" fill="none"/><line x1="92" y1="10" x2="92" y2="60"/><circle cx="92" cy="26" r="4" fill="none"/><circle cx="50" cy="12" r="6" fill="none"/><line x1="50" y1="18" x2="50" y2="48"/><line x1="50" y1="48" x2="42" y2="66"/><line x1="50" y1="48" x2="58" y2="66"/><line x1="50" y1="26" x2="35" y2="34"/><line x1="35" y1="34" x2="8" y2="26"/><line x1="50" y1="26" x2="65" y2="34"/><line x1="65" y1="34" x2="92" y2="26"/></svg>',
+    calf: '<svg viewBox="0 0 100 70" fill="none" stroke="var(--lime)" stroke-width="4" stroke-linecap="round"><circle cx="50" cy="10" r="6" fill="none"/><line x1="50" y1="16" x2="50" y2="45"/><line x1="35" y1="16" x2="65" y2="16"/><circle cx="33" cy="16" r="4"/><circle cx="67" cy="16" r="4"/><line x1="50" y1="45" x2="42" y2="62"/><line x1="42" y1="62" x2="49" y2="66"/><line x1="50" y1="45" x2="58" y2="62"/><line x1="58" y1="62" x2="65" y2="66"/></svg>'
+  };
+
+  var CATEGORIES = ['Alle','Borst','Rug','Benen','Schouders','Armen','Buik','Cardio'];
+
+  var PICKER_ITEMS = [
+    {name:'Bankdrukken', cat:'Borst', pose:'push'},
+    {name:'Incline bankdrukken', cat:'Borst', pose:'push'},
+    {name:'Decline bankdrukken', cat:'Borst', pose:'push'},
+    {name:'Push-ups', cat:'Borst', pose:'push'},
+    {name:'Chest fly', cat:'Borst', pose:'push'},
+    {name:'Cable fly', cat:'Borst', pose:'cable_fly'},
+    {name:'Dips', cat:'Borst', pose:'push'},
+    {name:'Bent-over rij', cat:'Rug', pose:'pull'},
+    {name:'T-bar row', cat:'Rug', pose:'pull'},
+    {name:'Lat pulldown', cat:'Rug', pose:'lat_pulldown'},
+    {name:'Straight-arm pulldown (kabel)', cat:'Rug', pose:'lat_pulldown'},
+    {name:'Cable rij (zittend)', cat:'Rug', pose:'cable_row'},
+    {name:'Pull-ups', cat:'Rug', pose:'pull'},
+    {name:'Deadlift', cat:'Rug', pose:'hinge'},
+    {name:'Squat', cat:'Benen', pose:'squat'},
+    {name:'Front squat', cat:'Benen', pose:'squat'},
+    {name:'Lunges', cat:'Benen', pose:'lunge'},
+    {name:'Leg press', cat:'Benen', pose:'squat'},
+    {name:'Leg extension', cat:'Benen', pose:'squat'},
+    {name:'Leg curl', cat:'Benen', pose:'squat'},
+    {name:'Hip thrust', cat:'Benen', pose:'hinge'},
+    {name:'Romanian deadlift', cat:'Benen', pose:'hinge'},
+    {name:'Kuitheffen (calf raise)', cat:'Benen', pose:'calf'},
+    {name:'Overhead press', cat:'Schouders', pose:'push'},
+    {name:'Zijwaartse heffingen', cat:'Schouders', pose:'push'},
+    {name:'Kabel lateral raise', cat:'Schouders', pose:'cable_fly'},
+    {name:'Face pulls', cat:'Schouders', pose:'pull'},
+    {name:'Bicep curl', cat:'Armen', pose:'curl'},
+    {name:'Hammer curl', cat:'Armen', pose:'curl'},
+    {name:'Kabel biceps curl', cat:'Armen', pose:'cable_curl'},
+    {name:'Tricep extension', cat:'Armen', pose:'curl'},
+    {name:'Kabel triceps pushdown', cat:'Armen', pose:'cable_tricep'},
+    {name:'Plank', cat:'Buik', pose:'core'},
+    {name:'Sit-ups', cat:'Buik', pose:'core'},
+    {name:'Crunches', cat:'Buik', pose:'core'},
+    {name:'Cable crunch', cat:'Buik', pose:'core'},
+    {name:'Russian twists', cat:'Buik', pose:'core'},
+    {name:'Hangende leg raise', cat:'Buik', pose:'core'},
+    {name:'Hardlopen', cat:'Cardio', pose:'cardio'},
+    {name:'Fietsen', cat:'Cardio', pose:'cardio'},
+    {name:'Roeien', cat:'Cardio', pose:'cardio'},
+    {name:'Touwtjespringen', cat:'Cardio', pose:'cardio'},
+    {name:'Traplopen', cat:'Cardio', pose:'cardio'}
+  ];
+
+  var KEYWORD_POSES = [
+    { pose:'push', keywords:['bankdruk','bench','push-up','pushup','opdruk','schouderdruk','overhead press','military press','dip','fly'] },
+    { pose:'pull', keywords:['bent-over','optrek','pull-up','pullup','chin-up','chinup','face pull','t-bar','rij','row'] },
+    { pose:'lat_pulldown', keywords:['lat pulldown','pulldown','latpulldown','straight-arm'] },
+    { pose:'cable_row', keywords:['cable row','kabel rij','zittende rij','seated row'] },
+    { pose:'cable_tricep', keywords:['pushdown','tricep pushdown','kabel triceps'] },
+    { pose:'cable_curl', keywords:['kabel biceps','cable curl','kabel curl'] },
+    { pose:'cable_fly', keywords:['cable fly','crossover','kabel fly','lateral raise','zijwaartse hef'] },
+    { pose:'squat', keywords:['squat','hurk','kniebuiging','leg press','leg extension','leg curl'] },
+    { pose:'hinge', keywords:['deadlift','heffen','romanian','good morning','goodmorning','hip thrust'] },
+    { pose:'lunge', keywords:['lunge','uitval'] },
+    { pose:'calf', keywords:['kuit','calf'] },
+    { pose:'core', keywords:['plank','sit-up','situp','crunch','buikspier','core','twist','leg raise'] },
+    { pose:'cardio', keywords:['hardloop','cardio','fiets','roeien','loopband','sprint','hometrainer','touwtjespringen','traplopen'] },
+    { pose:'curl', keywords:['curl','biceps','triceps','kickback'] }
+  ];
+
+  function findLibraryPose(name){
+    if(!name) return null;
+    var n = name.trim().toLowerCase();
+    for(var i=0;i<PICKER_ITEMS.length;i++){
+      if(PICKER_ITEMS[i].name.toLowerCase() === n) return PICKER_ITEMS[i].pose;
+    }
+    for(var k=0;k<KEYWORD_POSES.length;k++){
+      for(var j=0;j<KEYWORD_POSES[k].keywords.length;j++){
+        if(n.indexOf(KEYWORD_POSES[k].keywords[j]) !== -1) return KEYWORD_POSES[k].pose;
+      }
+    }
+    return null;
+  }
+
+  function poseIcon(name, cls){
+    var pose = findLibraryPose(name);
+    if(!pose) return '';
+    return '<span class="' + (cls||'poseicon') + '">' + POSES[pose] + '</span>';
+  }
+
+  var STATE = {
+    view: 'training',
+    date: new Date(),
+    goals: { calories: 2200, protein: 150, carbs: 220, fat: 70 },
+    exerciseNames: [],
+    pendingProduct: null,
+    weeks: [],
+    startDate: null,
+    weekUi: {},
+    pickerTarget: null,
+    pickerCat: 'Alle',
+    pickerQuery: ''
+  };
+
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function dateKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function isToday(d){ return dateKey(d) === dateKey(new Date()); }
+
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  var HAS_HOST_STORAGE = (typeof window.storage !== 'undefined' && window.storage !== null);
+
+  async function storageGet(key, fallback){
+    if(HAS_HOST_STORAGE){
+      try{
+        var res = await window.storage.get(key, false);
+        if(res) return JSON.parse(res.value);
+      }catch(e){ /* val terug op lokale opslag */ }
+    }
+    try{
+      var raw = localStorage.getItem('fittrack:' + key);
+      if(raw !== null) return JSON.parse(raw);
+    }catch(e){ /* geen opslag beschikbaar */ }
+    return fallback;
+  }
+  async function storageSet(key, value){
+    var okHost = false;
+    if(HAS_HOST_STORAGE){
+      try{
+        await window.storage.set(key, JSON.stringify(value), false);
+        okHost = true;
+      }catch(e){ okHost = false; }
+    }
+    try{
+      localStorage.setItem('fittrack:' + key, JSON.stringify(value));
+    }catch(e){
+      if(!okHost){
+        console.error('Opslaan mislukt', e);
+        showToast('Opslaan is niet gelukt. Probeer opnieuw.');
+      }
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ---------- data access ----------
+  async function loadGoals(){ STATE.goals = await storageGet('settings:goals', STATE.goals); }
+  async function saveGoals(g){ STATE.goals = g; await storageSet('settings:goals', g); }
+  async function loadExerciseNames(){ STATE.exerciseNames = await storageGet('settings:exercises', []); }
+  async function addExerciseName(name){
+    if(STATE.exerciseNames.indexOf(name) === -1){
+      STATE.exerciseNames.push(name);
+      await storageSet('settings:exercises', STATE.exerciseNames);
+    }
+  }
+  async function loadWorkout(dateStr){ return await storageGet('workout:' + dateStr, []); }
+  async function saveWorkout(dateStr, arr){ await storageSet('workout:' + dateStr, arr); }
+  async function loadNutrition(dateStr){ return await storageGet('nutrition:' + dateStr, []); }
+  async function saveNutrition(dateStr, arr){ await storageSet('nutrition:' + dateStr, arr); }
+
+  async function loadSchema(){
+    STATE.weeks = await storageGet('schema:weeks', []);
+    STATE.startDate = await storageGet('schema:startDate', null);
+  }
+  async function saveWeeks(){ await storageSet('schema:weeks', STATE.weeks); }
+  async function saveStartDate(d){ STATE.startDate = d; await storageSet('schema:startDate', d); }
+
+  function emptyDays(){
+    var d = {};
+    DAY_NAMES.forEach(function(dn){ d[dn] = []; });
+    return d;
+  }
+
+  function getScheduledForDate(date){
+    if(!STATE.startDate || STATE.weeks.length === 0) return null;
+    var start = new Date(STATE.startDate + 'T00:00:00');
+    var d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var s0 = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    var diffDays = Math.round((d0 - s0) / 86400000);
+    if(diffDays < 0) return null;
+    var weekIdx = Math.floor(diffDays / 7) % STATE.weeks.length;
+    var week = STATE.weeks[weekIdx];
+    var dayName = DAY_NAMES[(d0.getDay() + 6) % 7];
+    return { week: week, dayName: dayName, exercises: (week.days && week.days[dayName]) || [] };
+  }
+
+  // ---------- picker modal ----------
+  var pickerOverlay = document.getElementById('pickerOverlay');
+  document.getElementById('closePicker').addEventListener('click', function(){ pickerOverlay.classList.remove('active'); });
+
+  function openPicker(targetInputId){
+    STATE.pickerTarget = targetInputId;
+    STATE.pickerCat = 'Alle';
+    STATE.pickerQuery = '';
+    document.getElementById('pickerSearch').value = '';
+    renderPickerChips();
+    renderPickerGrid();
+    pickerOverlay.classList.add('active');
+  }
+
+  function renderPickerChips(){
+    var el = document.getElementById('pickerChips');
+    el.innerHTML = CATEGORIES.map(function(c){
+      return '<button class="chip' + (c === STATE.pickerCat ? ' active' : '') + '" data-cat="'+c+'">'+c+'</button>';
+    }).join('');
+    el.querySelectorAll('.chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        STATE.pickerCat = btn.dataset.cat;
+        renderPickerChips();
+        renderPickerGrid();
+      });
+    });
+  }
+
+  function renderPickerGrid(){
+    var q = STATE.pickerQuery.toLowerCase();
+    var items = PICKER_ITEMS.filter(function(it){
+      var catOk = STATE.pickerCat === 'Alle' || it.cat === STATE.pickerCat;
+      var qOk = !q || it.name.toLowerCase().indexOf(q) !== -1;
+      return catOk && qOk;
+    });
+    var grid = document.getElementById('pickerGrid');
+    if(items.length === 0){
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">Geen oefeningen gevonden.</div>';
+      return;
+    }
+    grid.innerHTML = items.map(function(it){
+      return '<button class="pickercard" data-name="'+escapeHtml(it.name)+'">' + POSES[it.pose] + '<span>'+escapeHtml(it.name)+'</span></button>';
+    }).join('');
+    grid.querySelectorAll('.pickercard').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var target = document.getElementById(STATE.pickerTarget);
+        if(target){
+          target.value = btn.dataset.name;
+          target.dispatchEvent(new Event('input'));
+        }
+        pickerOverlay.classList.remove('active');
+      });
+    });
+  }
+
+  document.getElementById('pickerSearch').addEventListener('input', function(){
+    STATE.pickerQuery = this.value;
+    renderPickerGrid();
+  });
+
+  document.getElementById('chooseExBtn').addEventListener('click', function(){ openPicker('exName'); });
+
+  // ---------- navigation ----------
+  document.querySelectorAll('.navbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.navbtn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      STATE.view = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById('view-' + STATE.view).classList.add('active');
+    });
+  });
+
+  document.getElementById('prevDay').addEventListener('click', function(){
+    STATE.date.setDate(STATE.date.getDate() - 1);
+    refreshDateView();
+  });
+  document.getElementById('nextDay').addEventListener('click', function(){
+    STATE.date.setDate(STATE.date.getDate() + 1);
+    refreshDateView();
+  });
+
+  function refreshDateView(){
+    var label = document.getElementById('dateLabel');
+    var opts = { weekday:'short', day:'numeric', month:'short' };
+    var txt = STATE.date.toLocaleDateString('nl-NL', opts);
+    label.innerHTML = isToday(STATE.date) ? '<b>Vandaag</b>' : txt;
+    renderWorkoutTab();
+    renderNutritionTab();
+    renderPlannedCard();
+  }
+
+  // ---------- training ----------
+  document.getElementById('exName').addEventListener('input', function(){
+    var name = this.value.trim();
+    var pose = findLibraryPose(name);
+    var box = document.getElementById('exPreview');
+    if(pose){
+      box.style.display = 'flex';
+      box.innerHTML = '<span class="poseicon">' + POSES[pose] + '</span><span class="posetext">Herkende beweging</span>';
+    } else {
+      box.style.display = 'none';
+      box.innerHTML = '';
+    }
+  });
+
+  async function renderWorkoutTab(){
+    var dk = dateKey(STATE.date);
+    var entries = await loadWorkout(dk);
+    var list = document.getElementById('setList');
+    if(entries.length === 0){
+      list.innerHTML = '<div class="empty">Nog geen sets gelogd op deze dag.</div>';
+      return;
+    }
+    list.innerHTML = entries.map(function(e){
+      return '<div class="setrow" data-id="'+e.id+'">'
+        + '<div class="setleft">' + poseIcon(e.name) + '<div><div class="exname">'+escapeHtml(e.name)+'</div>'
+        + '<div class="exmeta">'+e.sets+' x '+e.reps+' @ <input type="number" class="wtEdit" data-id="'+e.id+'" value="'+e.weight+'" step="0.5" min="0">kg</div></div></div>'
+        + '<button class="del" data-id="'+e.id+'" aria-label="Verwijderen">&times;</button></div>';
+    }).join('');
+    list.querySelectorAll('.del').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var id = btn.dataset.id;
+        var arr = await loadWorkout(dk);
+        arr = arr.filter(function(x){ return String(x.id) !== String(id); });
+        await saveWorkout(dk, arr);
+        renderWorkoutTab();
+        renderPlannedCard();
+      });
+    });
+    list.querySelectorAll('.wtEdit').forEach(function(inp){
+      inp.addEventListener('change', async function(){
+        var id = inp.dataset.id;
+        var arr = await loadWorkout(dk);
+        var entry = arr.find(function(x){ return String(x.id) === String(id); });
+        if(entry){ entry.weight = parseFloat(inp.value) || 0; await saveWorkout(dk, arr); showToast('Gewicht bijgewerkt.'); }
+      });
+    });
+  }
+
+  document.getElementById('addSetBtn').addEventListener('click', async function(){
+    var name = document.getElementById('exName').value.trim();
+    var sets = parseInt(document.getElementById('exSets').value, 10) || 1;
+    var reps = parseInt(document.getElementById('exReps').value, 10) || 1;
+    var weight = parseFloat(document.getElementById('exWeight').value) || 0;
+    if(!name){ showToast('Vul een oefening in.'); return; }
+    var dk = dateKey(STATE.date);
+    var arr = await loadWorkout(dk);
+    arr.push({ id: Date.now(), name: name, sets: sets, reps: reps, weight: weight });
+    await saveWorkout(dk, arr);
+    await addExerciseName(name);
+    document.getElementById('exName').value = '';
+    document.getElementById('exPreview').style.display = 'none';
+    renderWorkoutTab();
+    renderPlannedCard();
+    showToast('Set toegevoegd.');
+  });
+
+  async function renderPlannedCard(){
+    var sched = getScheduledForDate(STATE.date);
+    var card = document.getElementById('plannedCard');
+    var sub = document.getElementById('plannedSub');
+    var list = document.getElementById('plannedList');
+    if(!sched || sched.exercises.length === 0){
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = 'block';
+    sub.textContent = sched.week.name + ' · ' + sched.dayName;
+    var dk = dateKey(STATE.date);
+    var todays = await loadWorkout(dk);
+
+    list.innerHTML = sched.exercises.map(function(ex, idx){
+      var sourceKey = sched.week.id + '|' + sched.dayName + '|' + idx;
+      var done = todays.some(function(t){ return t.sourceKey === sourceKey; });
+      return '<div class="plannedrow' + (done ? ' done' : '') + '" data-sourcekey="'+sourceKey+'">'
+        + '<div class="pleft">' + poseIcon(ex.name) + '<div><div class="exname">'+escapeHtml(ex.name)+'</div>'
+        + '<div class="exmeta">'+ex.sets+' x '+ex.reps+'</div></div></div>'
+        + '<div class="checkwrap"><input type="checkbox" data-sourcekey="'+sourceKey+'" data-idx="'+idx+'" ' + (done ? 'checked' : '') + '></div></div>';
+    }).join('');
+
+    list.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+      cb.addEventListener('change', async function(){
+        var sourceKey = cb.dataset.sourcekey;
+        var idx = parseInt(cb.dataset.idx, 10);
+        var ex = sched.exercises[idx];
+        var arr = await loadWorkout(dk);
+        if(cb.checked){
+          if(!arr.some(function(t){ return t.sourceKey === sourceKey; })){
+            arr.push({ id: Date.now() + idx, name: ex.name, sets: ex.sets, reps: ex.reps, weight: 0, sourceKey: sourceKey });
+          }
+        } else {
+          arr = arr.filter(function(t){ return t.sourceKey !== sourceKey; });
+        }
+        await saveWorkout(dk, arr);
+        renderWorkoutTab();
+        renderPlannedCard();
+      });
+    });
+  }
+
+  // ---------- nutrition ----------
+  function computeTotals(entries){
+    var t = { kcal:0, protein:0, carbs:0, fat:0 };
+    entries.forEach(function(e){
+      t.kcal += e.kcal || 0; t.protein += e.protein || 0; t.carbs += e.carbs || 0; t.fat += e.fat || 0;
+    });
+    return t;
+  }
+
+  function gaugeSvg(value, goal, colorVar, label, unit){
+    var pct = goal > 0 ? Math.min(1, value / goal) : 0;
+    var r = 26, c = 2 * Math.PI * r;
+    var offset = c * (1 - pct);
+    return '<div class="gauge">'
+      + '<svg viewBox="0 0 64 64">'
+      + '<circle cx="32" cy="32" r="'+r+'" fill="none" stroke="var(--border)" stroke-width="6"/>'
+      + '<circle cx="32" cy="32" r="'+r+'" fill="none" stroke="'+colorVar+'" stroke-width="6" stroke-linecap="round" '
+      + 'stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" transform="rotate(-90 32 32)"/>'
+      + '</svg>'
+      + '<div class="glabel">'+label+'</div>'
+      + '<div class="gval">'+Math.round(value)+'/'+Math.round(goal)+unit+'</div>'
+      + '</div>';
+  }
+
+  async function renderNutritionTab(){
+    var dk = dateKey(STATE.date);
+    var entries = await loadNutrition(dk);
+    var totals = computeTotals(entries);
+    var g = STATE.goals;
+    var row = document.getElementById('gaugeRow');
+    row.innerHTML =
+      gaugeSvg(totals.kcal, g.calories, 'var(--lime)', 'Kcal', '') +
+      gaugeSvg(totals.protein, g.protein, 'var(--blue)', 'Eiwit', 'g') +
+      gaugeSvg(totals.carbs, g.carbs, 'var(--amber)', 'Koolh.', 'g') +
+      gaugeSvg(totals.fat, g.fat, 'var(--pink)', 'Vet', 'g');
+
+    var list = document.getElementById('foodList');
+    if(entries.length === 0){
+      list.innerHTML = '<div class="empty">Nog niets gelogd op deze dag.</div>';
+      return;
+    }
+    list.innerHTML = entries.map(function(e){
+      return '<div class="foodrow" data-id="'+e.id+'">'
+        + '<div><div class="fname">'+escapeHtml(e.name)+'</div>'
+        + '<div class="fmeta">'+Math.round(e.grams)+(e.unit || 'g')+' · '+Math.round(e.kcal)+' kcal · E'+Math.round(e.protein)+' K'+Math.round(e.carbs)+' V'+Math.round(e.fat)+'</div></div>'
+        + '<button class="del" data-id="'+e.id+'" aria-label="Verwijderen">&times;</button></div>';
+    }).join('');
+    list.querySelectorAll('.del').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var id = btn.dataset.id;
+        var arr = await loadNutrition(dk);
+        arr = arr.filter(function(x){ return String(x.id) !== String(id); });
+        await saveNutrition(dk, arr);
+        renderNutritionTab();
+      });
+    });
+  }
+
+  // ---------- goals ----------
+  var ACTIVITY_MULT = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725, veryactive:1.9 };
+  var GOAL_CONFIG = {
+    cut:       { label:'Afvallen',                proteinPerKg:2.2, kcalAdj:-500, fatPct:0.25 },
+    maintain:  { label:'Gewicht behouden',         proteinPerKg:1.8, kcalAdj:0,    fatPct:0.30 },
+    bulk:      { label:'Spiermassa opbouwen',      proteinPerKg:2.0, kcalAdj:350,  fatPct:0.25 },
+    strength:  { label:'Krachtsport',              proteinPerKg:2.0, kcalAdj:250,  fatPct:0.25 },
+    endurance: { label:'Duursport',                proteinPerKg:1.4, kcalAdj:0,    fatPct:0.25 },
+    team:      { label:'Teamsport',                proteinPerKg:1.6, kcalAdj:0,    fatPct:0.28 }
+  };
+
+  function calcMacros(gender, age, weight, height, activity, goalKey){
+    var bmrBase = 10 * weight + 6.25 * height - 5 * age;
+    var bmr = gender === 'man' ? bmrBase + 5 : bmrBase - 161;
+    var tdee = bmr * (ACTIVITY_MULT[activity] || 1.2);
+    var goal = GOAL_CONFIG[goalKey];
+    var kcal = Math.max(1200, tdee + goal.kcalAdj);
+    var proteinG = goal.proteinPerKg * weight;
+    var proteinKcal = proteinG * 4;
+    var fatKcal = kcal * goal.fatPct;
+    var fatG = fatKcal / 9;
+    var carbsKcal = Math.max(0, kcal - proteinKcal - fatKcal);
+    var carbsG = carbsKcal / 4;
+    return { kcal:kcal, protein:proteinG, carbs:carbsG, fat:fatG, goalLabel:goal.label };
+  }
+
+  async function loadCalcInputs(){
+    var saved = await storageGet('settings:calc', null);
+    if(saved){
+      document.getElementById('calcGender').value = saved.gender || 'man';
+      document.getElementById('calcAge').value = saved.age || 30;
+      document.getElementById('calcWeight').value = saved.weight || 75;
+      document.getElementById('calcHeight').value = saved.height || 178;
+      document.getElementById('calcActivity').value = saved.activity || 'moderate';
+      document.getElementById('calcGoal').value = saved.goal || 'cut';
+    }
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', async function(){
+    var gender = document.getElementById('calcGender').value;
+    var age = parseFloat(document.getElementById('calcAge').value) || 30;
+    var weight = parseFloat(document.getElementById('calcWeight').value) || 75;
+    var height = parseFloat(document.getElementById('calcHeight').value) || 178;
+    var activity = document.getElementById('calcActivity').value;
+    var goalKey = document.getElementById('calcGoal').value;
+
+    await storageSet('settings:calc', { gender:gender, age:age, weight:weight, height:height, activity:activity, goal:goalKey });
+
+    var r = calcMacros(gender, age, weight, height, activity, goalKey);
+    STATE.calcResult = r;
+    var box = document.getElementById('calcResult');
+    box.innerHTML =
+      '<div class="calcresult">'
+      + '<div class="ckcal">' + Math.round(r.kcal) + ' <span>kcal</span> / dag</div>'
+      + '<div class="cmacros">'
+      + '<div><div class="cval">' + Math.round(r.protein) + 'g</div><div class="clabel">Eiwit</div></div>'
+      + '<div><div class="cval">' + Math.round(r.carbs) + 'g</div><div class="clabel">Koolh.</div></div>'
+      + '<div><div class="cval">' + Math.round(r.fat) + 'g</div><div class="clabel">Vet</div></div>'
+      + '</div>'
+      + '<div class="cnote">Richtlijn voor "' + r.goalLabel + '", gebaseerd op de Mifflin-St Jeor formule. Dit is een schatting — pas aan op basis van hoe je lichaam reageert.</div>'
+      + '<button class="btn btn-primary" id="applyCalcBtn">Gebruik deze doelen</button>'
+      + '</div>';
+    document.getElementById('applyCalcBtn').addEventListener('click', async function(){
+      var g = { calories: Math.round(r.kcal), protein: Math.round(r.protein), carbs: Math.round(r.carbs), fat: Math.round(r.fat) };
+      await saveGoals(g);
+      renderGoalsTab();
+      renderNutritionTab();
+      showToast('Doelen toegepast.');
+    });
+  });
+
+  function renderGoalsTab(){
+    document.getElementById('goalKcal').value = STATE.goals.calories;
+    document.getElementById('goalProtein').value = STATE.goals.protein;
+    document.getElementById('goalCarbs').value = STATE.goals.carbs;
+    document.getElementById('goalFat').value = STATE.goals.fat;
+  }
+  document.getElementById('saveGoalsBtn').addEventListener('click', async function(){
+    var g = {
+      calories: parseFloat(document.getElementById('goalKcal').value) || 0,
+      protein: parseFloat(document.getElementById('goalProtein').value) || 0,
+      carbs: parseFloat(document.getElementById('goalCarbs').value) || 0,
+      fat: parseFloat(document.getElementById('goalFat').value) || 0
+    };
+    await saveGoals(g);
+    showToast('Doelen opgeslagen.');
+    renderNutritionTab();
+  });
+
+  // ---------- schema ----------
+  document.getElementById('saveStartDateBtn').addEventListener('click', async function(){
+    var v = document.getElementById('startDateInput').value;
+    if(!v){ showToast('Kies een startdatum.'); return; }
+    await saveStartDate(v);
+    showToast('Startdatum opgeslagen.');
+    renderPlannedCard();
+  });
+
+  document.getElementById('addWeekBtn').addEventListener('click', async function(){
+    var id = Date.now();
+    STATE.weeks.push({ id:id, name:'Week ' + (STATE.weeks.length + 1), days: emptyDays() });
+    STATE.weekUi[id] = 'Ma';
+    await saveWeeks();
+    renderSchemaTab();
+  });
+
+  function renderSchemaTab(){
+    document.getElementById('startDateInput').value = STATE.startDate || '';
+    var container = document.getElementById('weeksContainer');
+    if(STATE.weeks.length === 0){
+      container.innerHTML = '<div class="card"><div class="empty">Nog geen weken. Voeg er een toe om je schema op te bouwen.</div></div>';
+      return;
+    }
+    container.innerHTML = STATE.weeks.map(function(week){
+      if(!STATE.weekUi[week.id]) STATE.weekUi[week.id] = 'Ma';
+      var selDay = STATE.weekUi[week.id];
+      var exs = (week.days && week.days[selDay]) || [];
+      var listHtml = exs.length === 0
+        ? '<div class="empty">Geen oefeningen op ' + selDay + '.</div>'
+        : exs.map(function(ex, idx){
+            return '<div class="plannedrow">'
+              + '<div class="pleft">' + poseIcon(ex.name) + '<div><div class="exname">'+escapeHtml(ex.name)+'</div>'
+              + '<div class="exmeta">'+ex.sets+' x '+ex.reps+'</div></div></div>'
+              + '<button class="del wex-del" data-week="'+week.id+'" data-idx="'+idx+'" aria-label="Verwijderen">&times;</button></div>';
+          }).join('');
+      var inputId = 'wexname-' + week.id;
+      return '<div class="card">'
+        + '<div class="weekcard-head"><div class="wname">'+escapeHtml(week.name)+'</div>'
+        + '<button class="btn-danger wdel" data-week="'+week.id+'">Verwijderen</button></div>'
+        + '<div class="daytabs">' + DAY_NAMES.map(function(dn){
+            var activeStyle = dn === selDay ? ' style="background:var(--lime);color:#101207;border-color:var(--lime);font-weight:600;"' : '';
+            return '<button class="daytab" data-week="'+week.id+'" data-day="'+dn+'"' + activeStyle + '>'+dn+'</button>';
+          }).join('') + '</div>'
+        + '<div class="wexlist" data-week="'+week.id+'">' + listHtml + '</div>'
+        + '<div class="divider">Oefening toevoegen aan ' + selDay + '</div>'
+        + '<div class="field"><div class="pickrow"><input type="text" id="'+inputId+'" class="wexname" data-week="'+week.id+'" placeholder="Typ of kies uit lijst">'
+        + '<button class="btn btn-ghost wexchoose" data-target="'+inputId+'">Kies</button></div></div>'
+        + '<div class="row2"><div class="field"><input type="number" class="wexsets" data-week="'+week.id+'" min="1" value="3" placeholder="Sets"></div>'
+        + '<div class="field"><input type="number" class="wexreps" data-week="'+week.id+'" min="1" value="10" placeholder="Reps"></div></div>'
+        + '<button class="btn btn-ghost wexadd" data-week="'+week.id+'">+ Toevoegen aan schema</button>'
+        + '</div>';
+    }).join('');
+
+    container.querySelectorAll('.daytab').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        STATE.weekUi[btn.dataset.week] = btn.dataset.day;
+        renderSchemaTab();
+      });
+    });
+    container.querySelectorAll('.wdel').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        STATE.weeks = STATE.weeks.filter(function(w){ return String(w.id) !== String(btn.dataset.week); });
+        await saveWeeks();
+        renderSchemaTab();
+        renderPlannedCard();
+      });
+    });
+    container.querySelectorAll('.wex-del').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var week = STATE.weeks.find(function(w){ return String(w.id) === String(btn.dataset.week); });
+        var day = STATE.weekUi[btn.dataset.week];
+        week.days[day].splice(parseInt(btn.dataset.idx,10), 1);
+        await saveWeeks();
+        renderSchemaTab();
+        renderPlannedCard();
+      });
+    });
+    container.querySelectorAll('.wexchoose').forEach(function(btn){
+      btn.addEventListener('click', function(){ openPicker(btn.dataset.target); });
+    });
+    container.querySelectorAll('.wexadd').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var weekId = btn.dataset.week;
+        var week = STATE.weeks.find(function(w){ return String(w.id) === String(weekId); });
+        var nameEl = container.querySelector('.wexname[data-week="'+weekId+'"]');
+        var setsEl = container.querySelector('.wexsets[data-week="'+weekId+'"]');
+        var repsEl = container.querySelector('.wexreps[data-week="'+weekId+'"]');
+        var name = nameEl.value.trim();
+        if(!name){ showToast('Vul een oefening in of kies er een.'); return; }
+        var day = STATE.weekUi[weekId];
+        if(!week.days) week.days = emptyDays();
+        if(!week.days[day]) week.days[day] = [];
+        week.days[day].push({ name:name, sets: parseInt(setsEl.value,10)||1, reps: parseInt(repsEl.value,10)||1 });
+        await addExerciseName(name);
+        await saveWeeks();
+        renderSchemaTab();
+        renderPlannedCard();
+      });
+    });
+  }
+
+  // ---------- handmatig voedingsmiddel toevoegen ----------
+  var manualFoodOverlay = document.getElementById('manualFoodOverlay');
+
+  function updateManualPreview(){
+    var kcal100 = parseFloat(document.getElementById('mfKcal').value) || 0;
+    var protein100 = parseFloat(document.getElementById('mfProtein').value) || 0;
+    var carbs100 = parseFloat(document.getElementById('mfCarbs').value) || 0;
+    var fat100 = parseFloat(document.getElementById('mfFat').value) || 0;
+    var amount = parseFloat(document.getElementById('mfAmount').value) || 0;
+    var unit = document.getElementById('mfUnit').value;
+    var factor = amount / 100;
+    document.getElementById('mfPreview').innerHTML =
+      '<div class="pmacros">Voor ' + Math.round(amount) + unit + ': '
+      + Math.round(kcal100 * factor) + ' kcal · E' + Math.round(protein100 * factor)
+      + 'g K' + Math.round(carbs100 * factor) + 'g V' + Math.round(fat100 * factor) + 'g</div>';
+  }
+
+  document.getElementById('addManualFoodBtn').addEventListener('click', function(){
+    document.getElementById('mfName').value = '';
+    document.getElementById('mfKcal').value = 0;
+    document.getElementById('mfProtein').value = 0;
+    document.getElementById('mfCarbs').value = 0;
+    document.getElementById('mfFat').value = 0;
+    document.getElementById('mfAmount').value = 100;
+    document.getElementById('mfUnit').value = 'g';
+    updateManualPreview();
+    manualFoodOverlay.classList.add('active');
+  });
+  document.getElementById('closeManualFood').addEventListener('click', function(){
+    manualFoodOverlay.classList.remove('active');
+  });
+  ['mfKcal','mfProtein','mfCarbs','mfFat','mfAmount','mfUnit'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', updateManualPreview);
+  });
+  document.getElementById('mfAddBtn').addEventListener('click', async function(){
+    var name = document.getElementById('mfName').value.trim();
+    if(!name){ showToast('Vul een naam in.'); return; }
+    var kcal100 = parseFloat(document.getElementById('mfKcal').value) || 0;
+    var protein100 = parseFloat(document.getElementById('mfProtein').value) || 0;
+    var carbs100 = parseFloat(document.getElementById('mfCarbs').value) || 0;
+    var fat100 = parseFloat(document.getElementById('mfFat').value) || 0;
+    var amount = parseFloat(document.getElementById('mfAmount').value) || 100;
+    var unit = document.getElementById('mfUnit').value;
+    var factor = amount / 100;
+    var entry = {
+      id: Date.now(), name: name, grams: amount, unit: unit,
+      kcal: kcal100 * factor, protein: protein100 * factor, carbs: carbs100 * factor, fat: fat100 * factor
+    };
+    var dk = dateKey(STATE.date);
+    var arr = await loadNutrition(dk);
+    arr.push(entry);
+    await saveNutrition(dk, arr);
+    manualFoodOverlay.classList.remove('active');
+    renderNutritionTab();
+    showToast('Toegevoegd: ' + name);
+  });
+
+  // ---------- barcode scanning ----------
+  var overlay = document.getElementById('scanOverlay');
+  var video = document.getElementById('scanVideo');
+  var statusEl = document.getElementById('scanStatus');
+  var zxingReader = null;
+
+  document.getElementById('scanBtn').addEventListener('click', openScanner);
+  document.getElementById('closeScan').addEventListener('click', closeScanner);
+
+  function openScanner(){
+    overlay.classList.add('active');
+    document.getElementById('productResult').innerHTML = '';
+    document.getElementById('manualBarcode').value = '';
+    STATE.pendingProduct = null;
+
+    if(typeof ZXing === 'undefined'){
+      statusEl.textContent = 'De scanner kon niet laden (mogelijk geen internetverbinding). Voer de barcode hieronder handmatig in.';
+      video.style.display = 'none';
+      return;
+    }
+    if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+      statusEl.textContent = 'Camera vereist een beveiligde (https) verbinding. Voer de barcode hieronder handmatig in.';
+      video.style.display = 'none';
+      return;
+    }
+
+    video.style.display = 'block';
+    statusEl.textContent = 'Camera wordt gestart…';
+    if(!zxingReader){ zxingReader = new ZXing.BrowserMultiFormatReader(); }
+
+    function handleFrame(result){
+      if(result){
+        var code = result.getText();
+        statusEl.textContent = 'Barcode gevonden: ' + code;
+        stopCamera();
+        lookupBarcode(code);
+      }
+    }
+
+    function tryConstraints(constraints, isFallback){
+      zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
+        .then(function(){
+          if(overlay.classList.contains('active') && video.style.display !== 'none'){
+            statusEl.textContent = 'Richt de camera op de barcode…';
+          }
+        })
+        .catch(function(e){
+          if(!isFallback){
+            tryConstraints({ video: true }, true);
+          } else {
+            var reason = (e && e.name) ? e.name : 'onbekende fout';
+            statusEl.textContent = 'Kon de camera niet openen (' + reason + '). Voer de barcode hieronder handmatig in.';
+            video.style.display = 'none';
+          }
+        });
+    }
+
+    try{
+      tryConstraints({ video: { facingMode: { ideal: 'environment' } } }, false);
+    }catch(e){
+      statusEl.textContent = 'Kon de camera niet openen. Voer de barcode hieronder handmatig in.';
+      video.style.display = 'none';
+    }
+  }
+
+  function stopCamera(){
+    if(zxingReader){
+      try{ zxingReader.reset(); }catch(e){}
+    }
+  }
+
+  function closeScanner(){ stopCamera(); overlay.classList.remove('active'); }
+
+  document.getElementById('manualLookupBtn').addEventListener('click', function(){
+    var code = document.getElementById('manualBarcode').value.trim();
+    if(!code){ showToast('Voer een barcode in.'); return; }
+    stopCamera();
+    lookupBarcode(code);
+  });
+
+  async function lookupBarcode(code){
+    var resultEl = document.getElementById('productResult');
+    resultEl.innerHTML = '<div class="scan-status">Voedingswaarden opzoeken…</div>';
+    try{
+      var resp = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json?fields=product_name,brands,nutriments,product_quantity_unit,quantity');
+      var data = await resp.json();
+      if(data.status !== 1 || !data.product){
+        resultEl.innerHTML = '<div class="scan-status">Geen product gevonden voor deze barcode.</div>';
+        return;
+      }
+      var p = data.product;
+      var n = p.nutriments || {};
+      var guessedUnit = 'g';
+      var unitHint = ((p.product_quantity_unit || '') + ' ' + (p.quantity || '')).toLowerCase();
+      if(unitHint.indexOf('ml') !== -1 || unitHint.indexOf('l') !== -1 && unitHint.indexOf('kg') === -1){ guessedUnit = 'ml'; }
+      var per100 = {
+        name: p.product_name || 'Onbekend product',
+        brand: p.brands || '',
+        kcal: n['energy-kcal_100g'] || 0,
+        protein: n['proteins_100g'] || 0,
+        carbs: n['carbohydrates_100g'] || 0,
+        fat: n['fat_100g'] || 0,
+        unit: guessedUnit
+      };
+      STATE.pendingProduct = per100;
+      resultEl.innerHTML =
+        '<div class="productcard">'
+        + '<div class="pname">'+escapeHtml(per100.name)+'</div>'
+        + (per100.brand ? '<div class="pbrand">'+escapeHtml(per100.brand)+'</div>' : '')
+        + '<div class="pmacros">per 100'+per100.unit+': '+Math.round(per100.kcal)+' kcal · E'+Math.round(per100.protein)+'g K'+Math.round(per100.carbs)+'g V'+Math.round(per100.fat)+'g</div>'
+        + '<div class="field"><label for="gramsInput">Hoeveelheid gegeten/gedronken</label>'
+        + '<div class="pickrow"><input type="number" id="gramsInput" value="100" min="1">'
+        + '<select id="unitSelect" style="width:80px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 6px; font-size:15px;">'
+        + '<option value="g"' + (per100.unit==='g'?' selected':'') + '>gram</option>'
+        + '<option value="ml"' + (per100.unit==='ml'?' selected':'') + '>ml</option>'
+        + '</select></div></div>'
+        + '<button class="btn btn-primary" id="confirmAddBtn">Toevoegen aan vandaag</button>'
+        + '</div>';
+      document.getElementById('confirmAddBtn').addEventListener('click', confirmAddProduct);
+    }catch(e){
+      resultEl.innerHTML = '<div class="scan-status">Opzoeken mislukt. Controleer je internetverbinding.</div>';
+    }
+  }
+
+  async function confirmAddProduct(){
+    var grams = parseFloat(document.getElementById('gramsInput').value) || 100;
+    var unit = document.getElementById('unitSelect') ? document.getElementById('unitSelect').value : 'g';
+    var p = STATE.pendingProduct;
+    if(!p) return;
+    var factor = grams / 100;
+    var entry = {
+      id: Date.now(), name: p.name, grams: grams, unit: unit,
+      kcal: p.kcal * factor, protein: p.protein * factor, carbs: p.carbs * factor, fat: p.fat * factor
+    };
+    var dk = dateKey(STATE.date);
+    var arr = await loadNutrition(dk);
+    arr.push(entry);
+    await saveNutrition(dk, arr);
+    closeScanner();
+    renderNutritionTab();
+    showToast('Toegevoegd: ' + p.name);
+  }
+
+  // ---------- init ----------
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./service-worker.js').catch(function(){ /* geen offline-ondersteuning, app werkt gewoon online door */ });
+    });
+  }
+
+  async function init(){
+    await loadGoals();
+    await loadExerciseNames();
+    await loadSchema();
+    renderGoalsTab();
+    await loadCalcInputs();
+    renderSchemaTab();
+    refreshDateView();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
