@@ -1332,10 +1332,23 @@
         }
       }
 
+      function applyContinuousFocus(){
+        try{
+          var stream = video.srcObject;
+          var track = stream && stream.getVideoTracks()[0];
+          if(!track || typeof track.getCapabilities !== 'function') return;
+          var caps = track.getCapabilities();
+          if(caps.focusMode && caps.focusMode.indexOf('continuous') !== -1){
+            track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
+          }
+        }catch(e){ /* focusMode wordt niet ondersteund op dit toestel */ }
+      }
+
       function tryConstraints(constraints, isFallback){
         zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
           .then(function(){
             if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
+            applyContinuousFocus();
             if(overlay.classList.contains('active') && video.style.display !== 'none'){
               statusEl.textContent = 'Richt de camera op de barcode…';
             }
@@ -1350,7 +1363,7 @@
           });
       }
 
-      tryConstraints({ video: { facingMode: { ideal: 'environment' } } }, false);
+      tryConstraints({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }, false);
     }catch(e){
       fail('Kon de scanner niet starten (' + (e && e.message ? e.message : 'onbekende fout') + '). Voer de barcode hieronder handmatig in.', e);
     }
