@@ -159,6 +159,8 @@
   }
   .exrow-preview .poseicon{width:34px;height:28px;flex-shrink:0;}
   .exrow-preview .posetext{font-size:12px; color:var(--text-muted);}
+  .poseicon svg{width:100%;height:100%;}
+  .poseicon img{width:100%;height:100%;object-fit:cover;border-radius:4px;display:block;}
 
   .setrow{
     display:flex;
@@ -319,7 +321,9 @@
     cursor:pointer; color:var(--text);
   }
   .pickercard:active{border-color:var(--lime);}
-  .pickercard svg{width:72px;height:52px;}
+  .pickercard .pcicon{width:72px;height:52px;display:block;}
+  .pickercard .pcicon svg{width:100%;height:100%;}
+  .pickercard .pcicon img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;}
   .pickercard span{font-size:12.5px; font-weight:600; text-align:center; line-height:1.3;}
 
   select{
@@ -590,29 +594,42 @@
     {name:'Chest fly', cat:'Borst', pose:'push'},
     {name:'Cable fly', cat:'Borst', pose:'cable_fly'},
     {name:'Dips', cat:'Borst', pose:'push'},
+    {name:'Dumbbell bankdrukken', cat:'Borst', pose:'push'},
+    {name:'Incline dumbbell press', cat:'Borst', pose:'push'},
+    {name:'Dumbbell pullover', cat:'Borst', pose:'push'},
     {name:'Bent-over rij', cat:'Rug', pose:'pull'},
     {name:'T-bar row', cat:'Rug', pose:'pull'},
     {name:'Lat pulldown', cat:'Rug', pose:'lat_pulldown'},
     {name:'Straight-arm pulldown (kabel)', cat:'Rug', pose:'lat_pulldown'},
     {name:'Cable rij (zittend)', cat:'Rug', pose:'cable_row'},
     {name:'Pull-ups', cat:'Rug', pose:'pull'},
+    {name:'Dumbbell row (één arm)', cat:'Rug', pose:'pull'},
     {name:'Deadlift', cat:'Rug', pose:'hinge'},
     {name:'Squat', cat:'Benen', pose:'squat'},
     {name:'Front squat', cat:'Benen', pose:'squat'},
+    {name:'Goblet squat', cat:'Benen', pose:'squat'},
+    {name:'Dumbbell squat naar bank', cat:'Benen', pose:'squat'},
     {name:'Lunges', cat:'Benen', pose:'lunge'},
+    {name:'Dumbbell lunges', cat:'Benen', pose:'lunge'},
+    {name:'Dumbbell step-ups', cat:'Benen', pose:'lunge'},
     {name:'Leg press', cat:'Benen', pose:'squat'},
     {name:'Leg extension', cat:'Benen', pose:'squat'},
     {name:'Leg curl', cat:'Benen', pose:'squat'},
     {name:'Hip thrust', cat:'Benen', pose:'hinge'},
     {name:'Romanian deadlift', cat:'Benen', pose:'hinge'},
+    {name:'Dumbbell stiff-leg deadlift', cat:'Benen', pose:'hinge'},
     {name:'Kuitheffen (calf raise)', cat:'Benen', pose:'calf'},
     {name:'Overhead press', cat:'Schouders', pose:'push'},
+    {name:'Dumbbell shoulder press', cat:'Schouders', pose:'push'},
     {name:'Zijwaartse heffingen', cat:'Schouders', pose:'push'},
     {name:'Kabel lateral raise', cat:'Schouders', pose:'cable_fly'},
+    {name:'Dumbbell shrug', cat:'Schouders', pose:'pull'},
     {name:'Face pulls', cat:'Schouders', pose:'pull'},
     {name:'Bicep curl', cat:'Armen', pose:'curl'},
     {name:'Hammer curl', cat:'Armen', pose:'curl'},
     {name:'Kabel biceps curl', cat:'Armen', pose:'cable_curl'},
+    {name:'Seated dumbbell curl', cat:'Armen', pose:'curl'},
+    {name:'Concentration curl', cat:'Armen', pose:'curl'},
     {name:'Tricep extension', cat:'Armen', pose:'curl'},
     {name:'Kabel triceps pushdown', cat:'Armen', pose:'cable_tricep'},
     {name:'Plank', cat:'Buik', pose:'core'},
@@ -629,20 +646,20 @@
   ];
 
   var KEYWORD_POSES = [
-    { pose:'push', keywords:['bankdruk','bench','push-up','pushup','opdruk','schouderdruk','overhead press','military press','dip','fly'] },
-    { pose:'pull', keywords:['bent-over','optrek','pull-up','pullup','chin-up','chinup','face pull','t-bar','rij','row'] },
+    { pose:'push', keywords:['bankdruk','bench','push-up','pushup','opdruk','schouderdruk','overhead press','military press','dip','fly','pullover'] },
+    { pose:'pull', keywords:['bent-over','optrek','pull-up','pullup','chin-up','chinup','face pull','t-bar','rij','row','shrug'] },
     { pose:'lat_pulldown', keywords:['lat pulldown','pulldown','latpulldown','straight-arm'] },
     { pose:'cable_row', keywords:['cable row','kabel rij','zittende rij','seated row'] },
     { pose:'cable_tricep', keywords:['pushdown','tricep pushdown','kabel triceps'] },
     { pose:'cable_curl', keywords:['kabel biceps','cable curl','kabel curl'] },
     { pose:'cable_fly', keywords:['cable fly','crossover','kabel fly','lateral raise','zijwaartse hef'] },
-    { pose:'squat', keywords:['squat','hurk','kniebuiging','leg press','leg extension','leg curl'] },
-    { pose:'hinge', keywords:['deadlift','heffen','romanian','good morning','goodmorning','hip thrust'] },
-    { pose:'lunge', keywords:['lunge','uitval'] },
+    { pose:'squat', keywords:['squat','hurk','kniebuiging','leg press','leg extension','leg curl','goblet'] },
+    { pose:'hinge', keywords:['deadlift','heffen','romanian','good morning','goodmorning','hip thrust','stiff-leg','stiff leg'] },
+    { pose:'lunge', keywords:['lunge','uitval','step-up','step up'] },
     { pose:'calf', keywords:['kuit','calf'] },
     { pose:'core', keywords:['plank','sit-up','situp','crunch','buikspier','core','twist','leg raise'] },
     { pose:'cardio', keywords:['hardloop','cardio','fiets','roeien','loopband','sprint','hometrainer','touwtjespringen','traplopen'] },
-    { pose:'curl', keywords:['curl','biceps','triceps','kickback'] }
+    { pose:'curl', keywords:['curl','biceps','triceps','kickback','concentration'] }
   ];
 
   function findLibraryPose(name){
@@ -659,10 +676,89 @@
     return null;
   }
 
+  // Foto's per oefening uit de open "free-exercise-db" dataset (github.com/yuhonas/free-exercise-db)
+  var EXERCISE_IMAGES = {
+    'Bankdrukken': 'Barbell_Bench_Press_-_Medium_Grip',
+    'Incline bankdrukken': 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+    'Decline bankdrukken': 'Decline_Barbell_Bench_Press',
+    'Push-ups': 'Pushups',
+    'Chest fly': 'Dumbbell_Flyes',
+    'Cable fly': 'Flat_Bench_Cable_Flyes',
+    'Dips': 'Dips_-_Chest_Version',
+    'Dumbbell bankdrukken': 'Dumbbell_Bench_Press',
+    'Incline dumbbell press': 'Incline_Dumbbell_Press',
+    'Dumbbell pullover': 'Straight-Arm_Dumbbell_Pullover',
+    'Bent-over rij': 'Bent_Over_Barbell_Row',
+    'T-bar row': 'T-Bar_Row_with_Handle',
+    'Lat pulldown': 'Wide-Grip_Lat_Pulldown',
+    'Straight-arm pulldown (kabel)': 'Rope_Straight-Arm_Pulldown',
+    'Cable rij (zittend)': 'Seated_Cable_Rows',
+    'Pull-ups': 'Pullups',
+    'Dumbbell row (één arm)': 'One-Arm_Dumbbell_Row',
+    'Deadlift': 'Barbell_Deadlift',
+    'Squat': 'Barbell_Squat',
+    'Front squat': 'Front_Squat_Clean_Grip',
+    'Goblet squat': 'Goblet_Squat',
+    'Dumbbell squat naar bank': 'Dumbbell_Squat_To_A_Bench',
+    'Lunges': 'Bodyweight_Walking_Lunge',
+    'Dumbbell lunges': 'Dumbbell_Lunges',
+    'Dumbbell step-ups': 'Dumbbell_Step_Ups',
+    'Leg press': 'Leg_Press',
+    'Leg extension': 'Leg_Extensions',
+    'Leg curl': 'Lying_Leg_Curls',
+    'Hip thrust': 'Barbell_Hip_Thrust',
+    'Romanian deadlift': 'Romanian_Deadlift',
+    'Dumbbell stiff-leg deadlift': 'Stiff-Legged_Dumbbell_Deadlift',
+    'Kuitheffen (calf raise)': 'Standing_Calf_Raises',
+    'Overhead press': 'Standing_Military_Press',
+    'Dumbbell shoulder press': 'Dumbbell_Shoulder_Press',
+    'Zijwaartse heffingen': 'Side_Lateral_Raise',
+    'Kabel lateral raise': 'Cable_Seated_Lateral_Raise',
+    'Dumbbell shrug': 'Dumbbell_Shrug',
+    'Face pulls': 'Face_Pull',
+    'Bicep curl': 'Dumbbell_Bicep_Curl',
+    'Hammer curl': 'Hammer_Curls',
+    'Kabel biceps curl': 'Standing_Biceps_Cable_Curl',
+    'Seated dumbbell curl': 'Seated_Dumbbell_Curl',
+    'Concentration curl': 'Concentration_Curls',
+    'Tricep extension': 'Standing_Dumbbell_Triceps_Extension',
+    'Kabel triceps pushdown': 'Triceps_Pushdown',
+    'Plank': 'Plank',
+    'Sit-ups': 'Sit-Up',
+    'Crunches': 'Crunches',
+    'Cable crunch': 'Cable_Crunch',
+    'Russian twists': 'Russian_Twist',
+    'Hangende leg raise': 'Hanging_Leg_Raise',
+    'Hardlopen': 'Running_Treadmill',
+    'Fietsen': 'Bicycling',
+    'Roeien': 'Rowing_Stationary',
+    'Touwtjespringen': 'Rope_Jumping',
+    'Traplopen': 'Stairmaster'
+  };
+
+  function exerciseImageUrl(id){
+    return 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/' + id + '/0.jpg';
+  }
+
+  // Als een foto niet laadt (offline, gewijzigde dataset), val terug op het lijn-icoon.
+  document.addEventListener('error', function(e){
+    var img = e.target;
+    if(img.tagName === 'IMG' && img.classList.contains('exphoto')){
+      var pose = img.dataset.fallbackPose;
+      img.parentElement.innerHTML = pose ? POSES[pose] : '';
+    }
+  }, true);
+
   function poseIcon(name, cls){
+    var trimmed = (name || '').trim();
     var pose = findLibraryPose(name);
+    var imgId = EXERCISE_IMAGES[trimmed];
+    var cssClass = cls || 'poseicon';
+    if(imgId){
+      return '<span class="' + cssClass + '"><img class="exphoto" src="' + exerciseImageUrl(imgId) + '" alt="" loading="lazy" data-fallback-pose="' + (pose || '') + '"></span>';
+    }
     if(!pose) return '';
-    return '<span class="' + (cls||'poseicon') + '">' + POSES[pose] + '</span>';
+    return '<span class="' + cssClass + '">' + POSES[pose] + '</span>';
   }
 
   var STATE = {
@@ -811,7 +907,11 @@
       return;
     }
     grid.innerHTML = items.map(function(it){
-      return '<button class="pickercard" data-name="'+escapeHtml(it.name)+'">' + POSES[it.pose] + '<span>'+escapeHtml(it.name)+'</span></button>';
+      var imgId = EXERCISE_IMAGES[it.name];
+      var visual = imgId
+        ? '<span class="pcicon"><img class="exphoto" src="' + exerciseImageUrl(imgId) + '" alt="" loading="lazy" data-fallback-pose="' + it.pose + '"></span>'
+        : '<span class="pcicon">' + POSES[it.pose] + '</span>';
+      return '<button class="pickercard" data-name="'+escapeHtml(it.name)+'">' + visual + '<span>'+escapeHtml(it.name)+'</span></button>';
     }).join('');
     grid.querySelectorAll('.pickercard').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -869,7 +969,7 @@
     var box = document.getElementById('exPreview');
     if(pose){
       box.style.display = 'flex';
-      box.innerHTML = '<span class="poseicon">' + POSES[pose] + '</span><span class="posetext">Herkende beweging</span>';
+      box.innerHTML = poseIcon(name) + '<span class="posetext">Herkende beweging</span>';
     } else {
       box.style.display = 'none';
       box.innerHTML = '';
