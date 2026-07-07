@@ -409,6 +409,18 @@
     <!-- SCHEMA -->
     <section class="view" id="view-schema">
       <div class="card">
+        <h3>Schema genereren <span class="sub">voor spieropbouw</span></h3>
+        <div class="field">
+          <label>Welke materialen heb je?</label>
+          <div id="equipCheckboxes"></div>
+        </div>
+        <div class="field">
+          <label>Trainingsdagen per week</label>
+          <div class="chiprow" id="daysChips"></div>
+        </div>
+        <button class="btn btn-primary" id="generateScheduleBtn">Genereer schema</button>
+      </div>
+      <div class="card">
         <h3>Programma</h3>
         <div class="field">
           <label for="startDateInput">Actief vanaf</label>
@@ -626,62 +638,62 @@
   var CATEGORIES = ['Alle','Borst','Rug','Benen','Schouders','Armen','Buik','Cardio'];
 
   var PICKER_ITEMS = [
-    {name:'Bankdrukken', cat:'Borst', pose:'push'},
-    {name:'Incline bankdrukken', cat:'Borst', pose:'push'},
-    {name:'Decline bankdrukken', cat:'Borst', pose:'push'},
-    {name:'Push-ups', cat:'Borst', pose:'push'},
-    {name:'Chest fly', cat:'Borst', pose:'push'},
-    {name:'Cable fly', cat:'Borst', pose:'cable_fly'},
-    {name:'Dips', cat:'Borst', pose:'push'},
-    {name:'Dumbbell bankdrukken', cat:'Borst', pose:'push'},
-    {name:'Incline dumbbell press', cat:'Borst', pose:'push'},
-    {name:'Dumbbell pullover', cat:'Borst', pose:'push'},
-    {name:'Bent-over rij', cat:'Rug', pose:'pull'},
-    {name:'T-bar row', cat:'Rug', pose:'pull'},
-    {name:'Lat pulldown', cat:'Rug', pose:'lat_pulldown'},
-    {name:'Straight-arm pulldown (kabel)', cat:'Rug', pose:'lat_pulldown'},
-    {name:'Cable rij (zittend)', cat:'Rug', pose:'cable_row'},
-    {name:'Pull-ups', cat:'Rug', pose:'pull'},
-    {name:'Dumbbell row (één arm)', cat:'Rug', pose:'pull'},
-    {name:'Deadlift', cat:'Rug', pose:'hinge'},
-    {name:'Squat', cat:'Benen', pose:'squat'},
-    {name:'Front squat', cat:'Benen', pose:'squat'},
-    {name:'Goblet squat', cat:'Benen', pose:'squat'},
-    {name:'Dumbbell squat naar bank', cat:'Benen', pose:'squat'},
-    {name:'Lunges', cat:'Benen', pose:'lunge'},
-    {name:'Dumbbell lunges', cat:'Benen', pose:'lunge'},
-    {name:'Dumbbell step-ups', cat:'Benen', pose:'lunge'},
-    {name:'Leg press', cat:'Benen', pose:'squat'},
-    {name:'Leg extension', cat:'Benen', pose:'squat'},
-    {name:'Leg curl', cat:'Benen', pose:'squat'},
-    {name:'Hip thrust', cat:'Benen', pose:'hinge'},
-    {name:'Romanian deadlift', cat:'Benen', pose:'hinge'},
-    {name:'Dumbbell stiff-leg deadlift', cat:'Benen', pose:'hinge'},
-    {name:'Kuitheffen (calf raise)', cat:'Benen', pose:'calf'},
-    {name:'Overhead press', cat:'Schouders', pose:'push'},
-    {name:'Dumbbell shoulder press', cat:'Schouders', pose:'push'},
-    {name:'Zijwaartse heffingen', cat:'Schouders', pose:'push'},
-    {name:'Kabel lateral raise', cat:'Schouders', pose:'cable_fly'},
-    {name:'Dumbbell shrug', cat:'Schouders', pose:'pull'},
-    {name:'Face pulls', cat:'Schouders', pose:'pull'},
-    {name:'Bicep curl', cat:'Armen', pose:'curl'},
-    {name:'Hammer curl', cat:'Armen', pose:'curl'},
-    {name:'Kabel biceps curl', cat:'Armen', pose:'cable_curl'},
-    {name:'Seated dumbbell curl', cat:'Armen', pose:'curl'},
-    {name:'Concentration curl', cat:'Armen', pose:'curl'},
-    {name:'Tricep extension', cat:'Armen', pose:'curl'},
-    {name:'Kabel triceps pushdown', cat:'Armen', pose:'cable_tricep'},
-    {name:'Plank', cat:'Buik', pose:'core'},
-    {name:'Sit-ups', cat:'Buik', pose:'core'},
-    {name:'Crunches', cat:'Buik', pose:'core'},
-    {name:'Cable crunch', cat:'Buik', pose:'core'},
-    {name:'Russian twists', cat:'Buik', pose:'core'},
-    {name:'Hangende leg raise', cat:'Buik', pose:'core'},
-    {name:'Hardlopen', cat:'Cardio', pose:'cardio'},
-    {name:'Fietsen', cat:'Cardio', pose:'cardio'},
-    {name:'Roeien', cat:'Cardio', pose:'cardio'},
-    {name:'Touwtjespringen', cat:'Cardio', pose:'cardio'},
-    {name:'Traplopen', cat:'Cardio', pose:'cardio'}
+    {name:'Bankdrukken', cat:'Borst', pose:'push', equip:['barbell','bench']},
+    {name:'Incline bankdrukken', cat:'Borst', pose:'push', equip:['barbell','bench']},
+    {name:'Decline bankdrukken', cat:'Borst', pose:'push', equip:['barbell','bench']},
+    {name:'Push-ups', cat:'Borst', pose:'push', equip:[]},
+    {name:'Chest fly', cat:'Borst', pose:'push', equip:['dumbbell','bench']},
+    {name:'Cable fly', cat:'Borst', pose:'cable_fly', equip:['cable']},
+    {name:'Dips', cat:'Borst', pose:'push', equip:[]},
+    {name:'Dumbbell bankdrukken', cat:'Borst', pose:'push', equip:['dumbbell','bench']},
+    {name:'Incline dumbbell press', cat:'Borst', pose:'push', equip:['dumbbell','bench']},
+    {name:'Dumbbell pullover', cat:'Borst', pose:'push', equip:['dumbbell','bench']},
+    {name:'Bent-over rij', cat:'Rug', pose:'pull', equip:['barbell']},
+    {name:'T-bar row', cat:'Rug', pose:'pull', equip:['barbell']},
+    {name:'Lat pulldown', cat:'Rug', pose:'lat_pulldown', equip:['cable']},
+    {name:'Straight-arm pulldown (kabel)', cat:'Rug', pose:'lat_pulldown', equip:['cable']},
+    {name:'Cable rij (zittend)', cat:'Rug', pose:'cable_row', equip:['cable']},
+    {name:'Pull-ups', cat:'Rug', pose:'pull', equip:['pullupbar']},
+    {name:'Dumbbell row (één arm)', cat:'Rug', pose:'pull', equip:['dumbbell']},
+    {name:'Deadlift', cat:'Rug', pose:'hinge', equip:['barbell']},
+    {name:'Squat', cat:'Benen', pose:'squat', equip:['barbell']},
+    {name:'Front squat', cat:'Benen', pose:'squat', equip:['barbell']},
+    {name:'Goblet squat', cat:'Benen', pose:'squat', equip:['dumbbell']},
+    {name:'Dumbbell squat naar bank', cat:'Benen', pose:'squat', equip:['dumbbell','bench']},
+    {name:'Lunges', cat:'Benen', pose:'lunge', equip:[]},
+    {name:'Dumbbell lunges', cat:'Benen', pose:'lunge', equip:['dumbbell']},
+    {name:'Dumbbell step-ups', cat:'Benen', pose:'lunge', equip:['dumbbell','bench']},
+    {name:'Leg press', cat:'Benen', pose:'squat', equip:['machine']},
+    {name:'Leg extension', cat:'Benen', pose:'squat', equip:['machine']},
+    {name:'Leg curl', cat:'Benen', pose:'squat', equip:['machine']},
+    {name:'Hip thrust', cat:'Benen', pose:'hinge', equip:['barbell','bench']},
+    {name:'Romanian deadlift', cat:'Benen', pose:'hinge', equip:['barbell']},
+    {name:'Dumbbell stiff-leg deadlift', cat:'Benen', pose:'hinge', equip:['dumbbell']},
+    {name:'Kuitheffen (calf raise)', cat:'Benen', pose:'calf', equip:[]},
+    {name:'Overhead press', cat:'Schouders', pose:'push', equip:['barbell']},
+    {name:'Dumbbell shoulder press', cat:'Schouders', pose:'push', equip:['dumbbell']},
+    {name:'Zijwaartse heffingen', cat:'Schouders', pose:'push', equip:['dumbbell']},
+    {name:'Kabel lateral raise', cat:'Schouders', pose:'cable_fly', equip:['cable']},
+    {name:'Dumbbell shrug', cat:'Schouders', pose:'pull', equip:['dumbbell']},
+    {name:'Face pulls', cat:'Schouders', pose:'pull', equip:['cable']},
+    {name:'Bicep curl', cat:'Armen', pose:'curl', equip:['dumbbell']},
+    {name:'Hammer curl', cat:'Armen', pose:'curl', equip:['dumbbell']},
+    {name:'Kabel biceps curl', cat:'Armen', pose:'cable_curl', equip:['cable']},
+    {name:'Seated dumbbell curl', cat:'Armen', pose:'curl', equip:['dumbbell','bench']},
+    {name:'Concentration curl', cat:'Armen', pose:'curl', equip:['dumbbell','bench']},
+    {name:'Tricep extension', cat:'Armen', pose:'curl', equip:['dumbbell']},
+    {name:'Kabel triceps pushdown', cat:'Armen', pose:'cable_tricep', equip:['cable']},
+    {name:'Plank', cat:'Buik', pose:'core', equip:[]},
+    {name:'Sit-ups', cat:'Buik', pose:'core', equip:[]},
+    {name:'Crunches', cat:'Buik', pose:'core', equip:[]},
+    {name:'Cable crunch', cat:'Buik', pose:'core', equip:['cable']},
+    {name:'Russian twists', cat:'Buik', pose:'core', equip:[]},
+    {name:'Hangende leg raise', cat:'Buik', pose:'core', equip:['pullupbar']},
+    {name:'Hardlopen', cat:'Cardio', pose:'cardio', equip:[]},
+    {name:'Fietsen', cat:'Cardio', pose:'cardio', equip:['machine']},
+    {name:'Roeien', cat:'Cardio', pose:'cardio', equip:['machine']},
+    {name:'Touwtjespringen', cat:'Cardio', pose:'cardio', equip:[]},
+    {name:'Traplopen', cat:'Cardio', pose:'cardio', equip:[]}
   ];
 
   var KEYWORD_POSES = [
@@ -1592,6 +1604,147 @@
     showToast('Doelen opgeslagen.');
     renderNutritionTab();
   });
+
+  // ---------- schema genereren ----------
+  var SCHEMA_EQUIPMENT = [
+    { id:'dumbbell', label:'Dumbbells' },
+    { id:'barbell', label:'Barbell (halterstang)' },
+    { id:'bench', label:'Bankje' },
+    { id:'cable', label:'Kabelmachine' },
+    { id:'machine', label:'Beenmachines (leg press/extensie/curl)' },
+    { id:'pullupbar', label:'Optrekstang' }
+  ];
+  var STATE_EQUIP = { dumbbell:true, bench:true };
+  var STATE_DAYS = 3;
+
+  var FULLBODY_TEMPLATE = [
+    { cat:'Benen', n:1 }, { cat:'Borst', n:1 }, { cat:'Rug', n:1 },
+    { cat:'Schouders', n:1 }, { cat:'Armen', n:1 }, { cat:'Buik', n:1 }
+  ];
+  var UPPER_TEMPLATE = [
+    { cat:'Borst', n:2 }, { cat:'Rug', n:2 }, { cat:'Schouders', n:1 }, { cat:'Armen', n:2 }
+  ];
+  var LOWER_TEMPLATE = [
+    { cat:'Benen', n:4 }, { cat:'Buik', n:1 }
+  ];
+
+  function exerciseAvailable(item, equipSet){
+    if(!item.equip || item.equip.length === 0) return true;
+    return item.equip.every(function(e){ return equipSet[e]; });
+  }
+
+  function pickExercises(pool, cat, n, usedGlobal){
+    var candidates = pool.filter(function(it){ return it.cat === cat; });
+    if(candidates.length === 0) return [];
+    var sorted = candidates.slice().sort(function(a, b){
+      var au = usedGlobal.indexOf(a.name) === -1 ? 0 : 1;
+      var bu = usedGlobal.indexOf(b.name) === -1 ? 0 : 1;
+      return au - bu;
+    });
+    var result = [];
+    for(var i = 0; i < n; i++){ result.push(sorted[i % sorted.length]); }
+    return result;
+  }
+
+  var SCHEMA_PRIMARY_CATS = { Benen:true, Borst:true, Rug:true };
+
+  function buildDayExercises(pool, template, usedGlobal){
+    var day = [];
+    template.forEach(function(t){
+      var picks = pickExercises(pool, t.cat, t.n, usedGlobal);
+      var isPrimaryCat = !!SCHEMA_PRIMARY_CATS[t.cat];
+      picks.forEach(function(it, idx){
+        // Eerste (compound) oefening van een grote spiergroep: zwaarder, minder reps.
+        // Alle overige (isolatie/accessoire) oefeningen: lichter, meer reps.
+        var heavy = isPrimaryCat && idx === 0;
+        day.push({ name: it.name, sets: heavy ? 4 : 3, reps: heavy ? 8 : 12 });
+        usedGlobal.push(it.name);
+      });
+    });
+    return day;
+  }
+
+  function generateSchedule(equipSet, days){
+    var pool = PICKER_ITEMS.filter(function(it){ return it.cat !== 'Cardio' && exerciseAvailable(it, equipSet); });
+    var weekDays = emptyDays();
+    var usedGlobal = [];
+    var dayPlan;
+    if(days === 2){
+      dayPlan = [
+        { dayName:'Ma', template:FULLBODY_TEMPLATE, label:'Full Body A' },
+        { dayName:'Do', template:FULLBODY_TEMPLATE, label:'Full Body B' }
+      ];
+    } else if(days === 4){
+      dayPlan = [
+        { dayName:'Ma', template:UPPER_TEMPLATE, label:'Upper A' },
+        { dayName:'Di', template:LOWER_TEMPLATE, label:'Lower A' },
+        { dayName:'Do', template:UPPER_TEMPLATE, label:'Upper B' },
+        { dayName:'Vr', template:LOWER_TEMPLATE, label:'Lower B' }
+      ];
+    } else {
+      dayPlan = [
+        { dayName:'Ma', template:FULLBODY_TEMPLATE, label:'Full Body A' },
+        { dayName:'Wo', template:FULLBODY_TEMPLATE, label:'Full Body B' },
+        { dayName:'Vr', template:FULLBODY_TEMPLATE, label:'Full Body C' }
+      ];
+    }
+    dayPlan.forEach(function(d){
+      weekDays[d.dayName] = buildDayExercises(pool, d.template, usedGlobal);
+    });
+    var missing = ['Borst','Rug','Benen'].filter(function(cat){
+      return !pool.some(function(it){ return it.cat === cat; });
+    });
+    return { days: weekDays, missing: missing };
+  }
+
+  function renderEquipCheckboxes(){
+    var el = document.getElementById('equipCheckboxes');
+    el.innerHTML = SCHEMA_EQUIPMENT.map(function(eq){
+      return '<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:14px;">'
+        + '<input type="checkbox" class="equipCheck" data-equip="'+eq.id+'" style="width:20px;height:20px;accent-color:var(--lime);flex-shrink:0;"'
+        + (STATE_EQUIP[eq.id] ? ' checked' : '') + '>' + eq.label + '</label>';
+    }).join('');
+    el.querySelectorAll('.equipCheck').forEach(function(cb){
+      cb.addEventListener('change', function(){ STATE_EQUIP[cb.dataset.equip] = cb.checked; });
+    });
+  }
+
+  function renderDaysChips(){
+    var el = document.getElementById('daysChips');
+    el.innerHTML = [2,3,4].map(function(n){
+      return '<button class="chip' + (n === STATE_DAYS ? ' active' : '') + '" data-days="'+n+'">'+n+' dagen</button>';
+    }).join('');
+    el.querySelectorAll('.chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        STATE_DAYS = parseInt(btn.dataset.days, 10);
+        renderDaysChips();
+      });
+    });
+  }
+
+  document.getElementById('generateScheduleBtn').addEventListener('click', async function(){
+    var chosenEquip = SCHEMA_EQUIPMENT.filter(function(eq){ return STATE_EQUIP[eq.id]; }).map(function(eq){ return eq.label; });
+    var result = generateSchedule(STATE_EQUIP, STATE_DAYS);
+    if(result.missing.length > 0){
+      showToast('Let op: geen oefeningen mogelijk voor: ' + result.missing.join(', ') + '. Vink meer materialen aan.');
+    }
+    var id = Date.now();
+    var equipLabel = chosenEquip.length > 0 ? chosenEquip.join(', ') : 'Lichaamsgewicht';
+    STATE.weeks.push({ id:id, name:'Spieropbouw · ' + STATE_DAYS + ' dagen (' + equipLabel + ')', days: result.days });
+    STATE.weekUi[id] = 'Ma';
+    await saveWeeks();
+    if(!STATE.startDate){
+      var today = dateKey(new Date());
+      await saveStartDate(today);
+      document.getElementById('startDateInput').value = today;
+    }
+    renderSchemaTab();
+    renderPlannedCard();
+    showToast('Schema gegenereerd.');
+  });
+
+  renderEquipCheckboxes();
+  renderDaysChips();
 
   // ---------- schema ----------
   document.getElementById('saveStartDateBtn').addEventListener('click', async function(){
