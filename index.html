@@ -160,7 +160,10 @@
   .exrow-preview .poseicon{width:34px;height:28px;flex-shrink:0;}
   .exrow-preview .posetext{font-size:12px; color:var(--text-muted);}
   .poseicon svg{width:100%;height:100%;}
-  .poseicon img{width:100%;height:100%;object-fit:cover;border-radius:4px;display:block;}
+  .poseicon{position:relative;}
+  .poseicon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:4px;display:block;}
+  .exframe2{animation:exfade 2.4s ease-in-out infinite;}
+  @keyframes exfade{0%,100%{opacity:0;}50%{opacity:1;}}
 
   .setrow{
     display:flex;
@@ -321,9 +324,9 @@
     cursor:pointer; color:var(--text); position:relative;
   }
   .pickercard:active{border-color:var(--lime);}
-  .pickercard .pcicon{width:72px;height:52px;display:block;}
+  .pickercard .pcicon{width:72px;height:52px;display:block;position:relative;}
   .pickercard .pcicon svg{width:100%;height:100%;}
-  .pickercard .pcicon img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;}
+  .pickercard .pcicon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;}
   .pickercard span{font-size:12.5px; font-weight:600; text-align:center; line-height:1.3;}
   .pickercard .femoji{font-size:32px; line-height:1;}
   .pickercard .fbadge{
@@ -772,18 +775,27 @@
     'Traplopen': 'Stairmaster'
   };
 
-  function exerciseImageUrl(id){
-    return 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/' + id + '/0.jpg';
+  function exerciseImageUrl(id, frame){
+    return 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/' + id + '/' + (frame || 0) + '.jpg';
   }
 
   // Als een foto niet laadt (offline, gewijzigde dataset), val terug op het lijn-icoon.
+  // Als alleen het tweede (bewegende) frame faalt, blijft het eerste frame gewoon staan.
   document.addEventListener('error', function(e){
     var img = e.target;
-    if(img.tagName === 'IMG' && img.classList.contains('exphoto')){
-      var pose = img.dataset.fallbackPose;
-      img.parentElement.innerHTML = pose ? POSES[pose] : '';
+    if(img.tagName !== 'IMG' || !img.classList.contains('exphoto')) return;
+    if(img.classList.contains('exframe2')){
+      img.style.display = 'none';
+      return;
     }
+    var pose = img.dataset.fallbackPose;
+    img.parentElement.innerHTML = pose ? POSES[pose] : '';
   }, true);
+
+  function exerciseFrames(imgId, fallbackPose){
+    return '<img class="exphoto" src="' + exerciseImageUrl(imgId, 0) + '" alt="" loading="lazy" data-fallback-pose="' + (fallbackPose || '') + '">'
+      + '<img class="exphoto exframe2" src="' + exerciseImageUrl(imgId, 1) + '" alt="" loading="lazy">';
+  }
 
   function poseIcon(name, cls){
     var trimmed = (name || '').trim();
@@ -791,7 +803,7 @@
     var imgId = EXERCISE_IMAGES[trimmed];
     var cssClass = cls || 'poseicon';
     if(imgId){
-      return '<span class="' + cssClass + '"><img class="exphoto" src="' + exerciseImageUrl(imgId) + '" alt="" loading="lazy" data-fallback-pose="' + (pose || '') + '"></span>';
+      return '<span class="' + cssClass + '">' + exerciseFrames(imgId, pose) + '</span>';
     }
     if(!pose) return '';
     return '<span class="' + cssClass + '">' + POSES[pose] + '</span>';
@@ -945,7 +957,7 @@
     grid.innerHTML = items.map(function(it){
       var imgId = EXERCISE_IMAGES[it.name];
       var visual = imgId
-        ? '<span class="pcicon"><img class="exphoto" src="' + exerciseImageUrl(imgId) + '" alt="" loading="lazy" data-fallback-pose="' + it.pose + '"></span>'
+        ? '<span class="pcicon">' + exerciseFrames(imgId, it.pose) + '</span>'
         : '<span class="pcicon">' + POSES[it.pose] + '</span>';
       return '<button class="pickercard" data-name="'+escapeHtml(it.name)+'">' + visual + '<span>'+escapeHtml(it.name)+'</span></button>';
     }).join('');
