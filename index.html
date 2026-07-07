@@ -547,6 +547,7 @@
     <h3>Barcode scannen</h3>
     <video id="scanVideo" autoplay playsinline muted></video>
     <div class="scan-status" id="scanStatus">Camera wordt gestart…</div>
+    <button class="btn btn-ghost btn-small" id="switchCamBtn" style="display:none; margin-bottom:10px;">Andere camera proberen</button>
     <div class="field">
       <label for="manualBarcode">Of voer de barcode handmatig in</label>
       <input type="text" id="manualBarcode" placeholder="Bijv. 8710398503968" inputmode="numeric">
@@ -1280,10 +1281,94 @@
   var overlay = document.getElementById('scanOverlay');
   var video = document.getElementById('scanVideo');
   var statusEl = document.getElementById('scanStatus');
+  var switchCamBtn = document.getElementById('switchCamBtn');
   var zxingReader = null;
+  var scanStartTimeout = null;
+  var availableCameras = [];
+  var cameraIndex = 0;
 
   document.getElementById('scanBtn').addEventListener('click', openScanner);
   document.getElementById('closeScan').addEventListener('click', closeScanner);
+  switchCamBtn.addEventListener('click', function(){
+    if(availableCameras.length < 2) return;
+    cameraIndex = (cameraIndex + 1) % availableCameras.length;
+    startCamera();
+  });
+
+  function scanFail(msg, err){
+    if(scanStartTimeout){ clearTimeout(scanStartTimeout); scanStartTimeout = null; }
+    if(err){ console.error('Barcode scanner fout:', err); }
+    statusEl.textContent = msg;
+    video.style.display = 'none';
+  }
+
+  function handleFrame(result){
+    if(result){
+      if(scanStartTimeout){ clearTimeout(scanStartTimeout); scanStartTimeout = null; }
+      var code = result.getText();
+      statusEl.textContent = 'Barcode gevonden: ' + code;
+      stopCamera();
+      lookupBarcode(code);
+    }
+  }
+
+  function applyContinuousFocus(){
+    try{
+      var stream = video.srcObject;
+      var track = stream && stream.getVideoTracks()[0];
+      if(!track || typeof track.getCapabilities !== 'function') return;
+      var caps = track.getCapabilities();
+      if(caps.focusMode && caps.focusMode.indexOf('continuous') !== -1){
+        track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
+      }
+    }catch(e){ /* focusMode wordt niet ondersteund op dit toestel */ }
+  }
+
+  function refreshCameraList(){
+    if(!navigator.mediaDevices.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then(function(devices){
+      availableCameras = devices.filter(function(d){ return d.kind === 'videoinput'; });
+      switchCamBtn.style.display = availableCameras.length > 1 ? 'block' : 'none';
+    }).catch(function(){});
+  }
+
+  function startStream(constraints, isFallback){
+    zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
+      .then(function(){
+        if(scanStartTimeout){ clearTimeout(scanStartTimeout); scanStartTimeout = null; }
+        applyContinuousFocus();
+        refreshCameraList();
+        if(overlay.classList.contains('active') && video.style.display !== 'none'){
+          statusEl.textContent = 'Richt de camera op de barcode…';
+        }
+      })
+      .catch(function(e){
+        if(!isFallback){
+          startStream({ video: true }, true);
+        } else {
+          var reason = (e && e.name) ? e.name : ((e && e.message) ? e.message : 'onbekende fout');
+          scanFail('Kon de camera niet openen (' + reason + '). Voer de barcode hieronder handmatig in.', e);
+        }
+      });
+  }
+
+  function startCamera(){
+    stopCamera();
+    video.style.display = 'block';
+    statusEl.textContent = 'Camera wordt gestart…';
+    if(!zxingReader){ zxingReader = new ZXing.BrowserMultiFormatReader(); }
+
+    scanStartTimeout = setTimeout(function(){
+      scanFail('Camera reageert niet. Sluit dit scherm en probeer opnieuw, of voer de barcode handmatig in.');
+    }, 8000);
+
+    if(availableCameras.length > 0 && availableCameras[cameraIndex]){
+      statusEl.textContent = 'Camera wisselen…';
+      startStream({ video: { deviceId: { exact: availableCameras[cameraIndex].deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } }, true);
+    } else {
+      startStream({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }, false);
+    }
+  }
 
   function openScanner(){
     overlay.classList.add('active');
@@ -1291,85 +1376,27 @@
     document.getElementById('manualBarcode').value = '';
     STATE.pendingProduct = null;
 
-    var startTimeout = null;
-
-    function fail(msg, err){
-      if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
-      if(err){ console.error('Barcode scanner fout:', err); }
-      statusEl.textContent = msg;
-      video.style.display = 'none';
-    }
-
     try{
       if(typeof ZXing === 'undefined'){
-        fail('De scanner kon niet laden (mogelijk geen internetverbinding). Voer de barcode hieronder handmatig in.');
+        scanFail('De scanner kon niet laden (mogelijk geen internetverbinding). Voer de barcode hieronder handmatig in.');
         return;
       }
       if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
-        fail('Camera vereist een beveiligde (https) verbinding. Voer de barcode hieronder handmatig in.');
+        scanFail('Camera vereist een beveiligde (https) verbinding. Voer de barcode hieronder handmatig in.');
         return;
       }
       if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-        fail('Deze browser ondersteunt geen camera-toegang. Voer de barcode hieronder handmatig in.');
+        scanFail('Deze browser ondersteunt geen camera-toegang. Voer de barcode hieronder handmatig in.');
         return;
       }
-
-      video.style.display = 'block';
-      statusEl.textContent = 'Camera wordt gestart…';
-      if(!zxingReader){ zxingReader = new ZXing.BrowserMultiFormatReader(); }
-
-      startTimeout = setTimeout(function(){
-        fail('Camera reageert niet. Sluit dit scherm en probeer opnieuw, of voer de barcode handmatig in.');
-      }, 8000);
-
-      function handleFrame(result){
-        if(result){
-          if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
-          var code = result.getText();
-          statusEl.textContent = 'Barcode gevonden: ' + code;
-          stopCamera();
-          lookupBarcode(code);
-        }
-      }
-
-      function applyContinuousFocus(){
-        try{
-          var stream = video.srcObject;
-          var track = stream && stream.getVideoTracks()[0];
-          if(!track || typeof track.getCapabilities !== 'function') return;
-          var caps = track.getCapabilities();
-          if(caps.focusMode && caps.focusMode.indexOf('continuous') !== -1){
-            track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
-          }
-        }catch(e){ /* focusMode wordt niet ondersteund op dit toestel */ }
-      }
-
-      function tryConstraints(constraints, isFallback){
-        zxingReader.decodeFromConstraints(constraints, video, function(result){ handleFrame(result); })
-          .then(function(){
-            if(startTimeout){ clearTimeout(startTimeout); startTimeout = null; }
-            applyContinuousFocus();
-            if(overlay.classList.contains('active') && video.style.display !== 'none'){
-              statusEl.textContent = 'Richt de camera op de barcode…';
-            }
-          })
-          .catch(function(e){
-            if(!isFallback){
-              tryConstraints({ video: true }, true);
-            } else {
-              var reason = (e && e.name) ? e.name : ((e && e.message) ? e.message : 'onbekende fout');
-              fail('Kon de camera niet openen (' + reason + '). Voer de barcode hieronder handmatig in.', e);
-            }
-          });
-      }
-
-      tryConstraints({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } }, false);
+      startCamera();
     }catch(e){
-      fail('Kon de scanner niet starten (' + (e && e.message ? e.message : 'onbekende fout') + '). Voer de barcode hieronder handmatig in.', e);
+      scanFail('Kon de scanner niet starten (' + (e && e.message ? e.message : 'onbekende fout') + '). Voer de barcode hieronder handmatig in.', e);
     }
   }
 
   function stopCamera(){
+    if(scanStartTimeout){ clearTimeout(scanStartTimeout); scanStartTimeout = null; }
     if(zxingReader){
       try{ zxingReader.reset(); }catch(e){}
     }
