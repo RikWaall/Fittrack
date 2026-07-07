@@ -318,13 +318,18 @@
   .pickercard{
     background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
     padding:14px 8px; display:flex; flex-direction:column; align-items:center; gap:8px;
-    cursor:pointer; color:var(--text);
+    cursor:pointer; color:var(--text); position:relative;
   }
   .pickercard:active{border-color:var(--lime);}
   .pickercard .pcicon{width:72px;height:52px;display:block;}
   .pickercard .pcicon svg{width:100%;height:100%;}
   .pickercard .pcicon img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;}
   .pickercard span{font-size:12.5px; font-weight:600; text-align:center; line-height:1.3;}
+  .pickercard .femoji{font-size:32px; line-height:1;}
+  .pickercard .fbadge{
+    position:absolute; top:6px; right:6px; background:var(--lime); color:#101207;
+    font-size:10px; font-weight:700; padding:2px 6px; border-radius:8px;
+  }
 
   select{
     width:100%;
@@ -419,8 +424,9 @@
         <div class="gaugerow" id="gaugeRow"></div>
       </div>
       <div class="card">
+        <button class="btn btn-primary" id="quickFoodBtn" style="margin-bottom:10px;">Snelkeuze basisproducten</button>
         <div class="row2">
-          <button class="btn btn-primary" id="scanBtn">Barcode scannen</button>
+          <button class="btn btn-ghost" id="scanBtn">Barcode scannen</button>
           <button class="btn btn-ghost" id="addManualFoodBtn">Handmatig toevoegen</button>
         </div>
       </div>
@@ -542,6 +548,36 @@
     </div>
     <div class="productcard" id="mfPreview"></div>
     <button class="btn btn-primary" id="mfAddBtn">Toevoegen aan vandaag</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="quickFoodOverlay">
+  <div class="modal">
+    <button class="closebtn" id="closeQuickFood">&times;</button>
+    <h3>Snelkeuze</h3>
+    <div id="quickFoodListStep">
+      <div class="field"><input type="text" id="quickFoodSearch" placeholder="Zoeken…"></div>
+      <div class="chiprow" id="quickFoodChips"></div>
+      <div class="pickergrid" id="quickFoodGrid"></div>
+    </div>
+    <div id="quickFoodDetailStep" style="display:none;">
+      <button class="btn btn-ghost btn-small" id="quickFoodBackBtn" style="margin-bottom:12px;">&larr; Terug</button>
+      <div class="exrow-preview" id="quickFoodHeader" style="display:flex;"></div>
+      <div class="field" id="quickFoodVariantField" style="display:none;">
+        <label>Bereiding</label>
+        <div class="chiprow" id="quickFoodVariantChips"></div>
+      </div>
+      <div class="field">
+        <label for="quickFoodQty" id="quickFoodQtyLabel">Hoeveelheid</label>
+        <div class="pickrow">
+          <button class="btn btn-ghost btn-small" id="quickFoodMinus">&minus;</button>
+          <input type="number" id="quickFoodQty" min="0" step="0.5">
+          <button class="btn btn-ghost btn-small" id="quickFoodPlus">+</button>
+        </div>
+      </div>
+      <div class="productcard" id="quickFoodPreview"></div>
+      <button class="btn btn-primary" id="quickFoodAddBtn">Toevoegen aan vandaag</button>
+    </div>
   </div>
 </div>
 
@@ -1071,6 +1107,333 @@
     });
   }
 
+  // ---------- snelkeuze basisproducten ----------
+  var FOOD_CATEGORIES = ['Alle','Eiwit','Zuivel','Granen','Fruit','Groente','Vetten & noten','Overig'];
+
+  // Typische waarden per 100g/ml (gemiddelden, vergelijkbaar met NEVO/USDA-databases).
+  var QUICK_FOODS = [
+    { id:'ei', name:'Ei', emoji:'🥚', cat:'Eiwit', unit:'stuk', gramsPerUnit:50, defaultQty:1, variants:[
+      { name:'Gekookt', per100:{kcal:155, protein:13, carbs:1.1, fat:11} },
+      { name:'Gebakken (boter)', per100:{kcal:196, protein:13.6, carbs:0.9, fat:15}, gramsPerUnit:55 },
+      { name:'Roerei', per100:{kcal:154, protein:11, carbs:1.6, fat:11.5}, gramsPerUnit:60 },
+      { name:'Gepocheerd', per100:{kcal:143, protein:12.5, carbs:0.7, fat:9.5} }
+    ]},
+    { id:'kipfilet', name:'Kipfilet', emoji:'🍗', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:125, variants:[
+      { name:'Gegrild/gebakken (naturel)', per100:{kcal:165, protein:31, carbs:0, fat:3.6} },
+      { name:'Gepaneerd, gebakken', per100:{kcal:220, protein:19, carbs:10, fat:12} }
+    ]},
+    { id:'kalkoenfilet', name:'Kalkoenfilet', emoji:'🦃', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:125, variants:[
+      { name:'Gegrild', per100:{kcal:135, protein:30, carbs:0, fat:1} }
+    ]},
+    { id:'rundergehakt', name:'Rundergehakt', emoji:'🥩', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:125, variants:[
+      { name:'Mager (5%), gebakken', per100:{kcal:172, protein:26, carbs:0, fat:7} },
+      { name:'Half-om-half (15%), gebakken', per100:{kcal:254, protein:24, carbs:0, fat:17} }
+    ]},
+    { id:'zalm', name:'Zalm', emoji:'🐟', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:125, variants:[
+      { name:'Gebakken/gegrild', per100:{kcal:208, protein:20, carbs:0, fat:13} },
+      { name:'Gerookt', per100:{kcal:142, protein:25, carbs:0, fat:4.3} }
+    ]},
+    { id:'tonijn', name:'Tonijn (blik)', emoji:'🐟', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:80, variants:[
+      { name:'Op water', per100:{kcal:116, protein:26, carbs:0, fat:1} },
+      { name:'Op olie', per100:{kcal:189, protein:25, carbs:0, fat:9} }
+    ]},
+    { id:'garnalen', name:'Garnalen', emoji:'🦐', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:100, variants:[
+      { name:'Gekookt', per100:{kcal:99, protein:24, carbs:0.2, fat:0.3} }
+    ]},
+    { id:'tofu', name:'Tofu', emoji:'🧊', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:100, variants:[
+      { name:'Naturel', per100:{kcal:76, protein:8, carbs:1.9, fat:4.8} }
+    ]},
+    { id:'kwark', name:'Magere kwark', emoji:'🥣', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Naturel', per100:{kcal:58, protein:12, carbs:4, fat:0.2} }
+    ]},
+    { id:'griekseyoghurt', name:'Griekse yoghurt', emoji:'🥣', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Vol (10%)', per100:{kcal:133, protein:6, carbs:4.7, fat:10} },
+      { name:'0% vet', per100:{kcal:57, protein:9.5, carbs:4, fat:0.3} }
+    ]},
+    { id:'huttenkase', name:'Hüttenkäse', emoji:'🥣', cat:'Eiwit', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Naturel', per100:{kcal:98, protein:11, carbs:3.4, fat:4.3} }
+    ]},
+    { id:'wheyshake', name:'Whey proteïne shake', emoji:'💪', cat:'Eiwit', unit:'scoop', gramsPerUnit:30, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:380, protein:75, carbs:10, fat:6.5} }
+    ]},
+    { id:'melk', name:'Melk', emoji:'🥛', cat:'Zuivel', unit:'ml', gramsPerUnit:1, defaultQty:200, variants:[
+      { name:'Halfvolle', per100:{kcal:46, protein:3.4, carbs:4.7, fat:1.5} },
+      { name:'Volle', per100:{kcal:64, protein:3.3, carbs:4.5, fat:3.6} },
+      { name:'Magere', per100:{kcal:35, protein:3.4, carbs:5, fat:0.1} }
+    ]},
+    { id:'yoghurtnaturel', name:'Yoghurt naturel', emoji:'🥛', cat:'Zuivel', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Volle', per100:{kcal:61, protein:3.5, carbs:4.1, fat:3.3} },
+      { name:'Magere', per100:{kcal:42, protein:4.2, carbs:6, fat:0.1} }
+    ]},
+    { id:'kaas', name:'Kaas (jong belegen)', emoji:'🧀', cat:'Zuivel', unit:'plak', gramsPerUnit:20, defaultQty:2, variants:[
+      { name:'Standaard', per100:{kcal:357, protein:25, carbs:0, fat:28} }
+    ]},
+    { id:'boter', name:'Boter', emoji:'🧈', cat:'Zuivel', unit:'gram', gramsPerUnit:1, defaultQty:10, variants:[
+      { name:'Standaard', per100:{kcal:717, protein:0.9, carbs:0.1, fat:81} }
+    ]},
+    { id:'slagroom', name:'Slagroom', emoji:'🍦', cat:'Zuivel', unit:'eetlepel', gramsPerUnit:15, defaultQty:2, variants:[
+      { name:'Standaard', per100:{kcal:292, protein:2.1, carbs:3.4, fat:30} }
+    ]},
+    { id:'rijst', name:'Rijst', emoji:'🍚', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Witte rijst, gekookt', per100:{kcal:130, protein:2.4, carbs:28, fat:0.3} },
+      { name:'Zilvervliesrijst, gekookt', per100:{kcal:123, protein:2.6, carbs:25.8, fat:1} }
+    ]},
+    { id:'pasta', name:'Pasta', emoji:'🍝', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:200, variants:[
+      { name:'Wit, gekookt', per100:{kcal:131, protein:5, carbs:25, fat:1.1} },
+      { name:'Volkoren, gekookt', per100:{kcal:124, protein:5.3, carbs:24.5, fat:1.4} }
+    ]},
+    { id:'brood', name:'Brood', emoji:'🍞', cat:'Granen', unit:'snee', gramsPerUnit:35, defaultQty:2, variants:[
+      { name:'Witbrood', per100:{kcal:265, protein:9, carbs:49, fat:3.2} },
+      { name:'Volkorenbrood', per100:{kcal:246, protein:9.5, carbs:41, fat:4.2} }
+    ]},
+    { id:'havermout', name:'Havermout', emoji:'🥣', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:50, variants:[
+      { name:'Droog', per100:{kcal:379, protein:13.5, carbs:61, fat:7} }
+    ]},
+    { id:'aardappelen', name:'Aardappelen', emoji:'🥔', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:200, variants:[
+      { name:'Gekookt', per100:{kcal:87, protein:1.9, carbs:20, fat:0.1} },
+      { name:'Gebakken (olie)', per100:{kcal:155, protein:2.5, carbs:21, fat:6.5} },
+      { name:'Puree (melk/boter)', per100:{kcal:113, protein:2, carbs:16, fat:4.5} },
+      { name:'Frites', per100:{kcal:274, protein:3.4, carbs:36, fat:13} }
+    ]},
+    { id:'quinoa', name:'Quinoa', emoji:'🍚', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Gekookt', per100:{kcal:120, protein:4.4, carbs:21.3, fat:1.9} }
+    ]},
+    { id:'couscous', name:'Couscous', emoji:'🍚', cat:'Granen', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Gekookt', per100:{kcal:112, protein:3.8, carbs:23.2, fat:0.2} }
+    ]},
+    { id:'banaan', name:'Banaan', emoji:'🍌', cat:'Fruit', unit:'stuk', gramsPerUnit:120, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:89, protein:1.1, carbs:22.8, fat:0.3} }
+    ]},
+    { id:'appel', name:'Appel', emoji:'🍎', cat:'Fruit', unit:'stuk', gramsPerUnit:150, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:52, protein:0.3, carbs:13.8, fat:0.2} }
+    ]},
+    { id:'sinaasappel', name:'Sinaasappel', emoji:'🍊', cat:'Fruit', unit:'stuk', gramsPerUnit:150, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:47, protein:0.9, carbs:11.8, fat:0.1} }
+    ]},
+    { id:'aardbeien', name:'Aardbeien', emoji:'🍓', cat:'Fruit', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Standaard', per100:{kcal:32, protein:0.7, carbs:7.7, fat:0.3} }
+    ]},
+    { id:'blauwebessen', name:'Blauwe bessen', emoji:'🫐', cat:'Fruit', unit:'gram', gramsPerUnit:1, defaultQty:125, variants:[
+      { name:'Standaard', per100:{kcal:57, protein:0.7, carbs:14.5, fat:0.3} }
+    ]},
+    { id:'druiven', name:'Druiven', emoji:'🍇', cat:'Fruit', unit:'gram', gramsPerUnit:1, defaultQty:100, variants:[
+      { name:'Standaard', per100:{kcal:69, protein:0.7, carbs:18, fat:0.2} }
+    ]},
+    { id:'peer', name:'Peer', emoji:'🍐', cat:'Fruit', unit:'stuk', gramsPerUnit:160, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:57, protein:0.4, carbs:15, fat:0.1} }
+    ]},
+    { id:'broccoli', name:'Broccoli', emoji:'🥦', cat:'Groente', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Gekookt', per100:{kcal:35, protein:2.4, carbs:7, fat:0.4} }
+    ]},
+    { id:'sperziebonen', name:'Sperziebonen', emoji:'🫛', cat:'Groente', unit:'gram', gramsPerUnit:1, defaultQty:150, variants:[
+      { name:'Gekookt', per100:{kcal:31, protein:1.8, carbs:7, fat:0.1} }
+    ]},
+    { id:'wortel', name:'Wortel', emoji:'🥕', cat:'Groente', unit:'gram', gramsPerUnit:1, defaultQty:100, variants:[
+      { name:'Rauw', per100:{kcal:41, protein:0.9, carbs:10, fat:0.2} }
+    ]},
+    { id:'tomaat', name:'Tomaat', emoji:'🍅', cat:'Groente', unit:'stuk', gramsPerUnit:100, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:18, protein:0.9, carbs:3.9, fat:0.2} }
+    ]},
+    { id:'komkommer', name:'Komkommer', emoji:'🥒', cat:'Groente', unit:'gram', gramsPerUnit:1, defaultQty:100, variants:[
+      { name:'Rauw', per100:{kcal:15, protein:0.7, carbs:3.6, fat:0.1} }
+    ]},
+    { id:'sla', name:'Sla/spinazie', emoji:'🥬', cat:'Groente', unit:'gram', gramsPerUnit:1, defaultQty:50, variants:[
+      { name:'Rauw', per100:{kcal:23, protein:2.9, carbs:3.6, fat:0.4} }
+    ]},
+    { id:'avocado', name:'Avocado', emoji:'🥑', cat:'Groente', unit:'stuk', gramsPerUnit:200, defaultQty:0.5, variants:[
+      { name:'Standaard', per100:{kcal:160, protein:2, carbs:8.5, fat:14.7} }
+    ]},
+    { id:'olijfolie', name:'Olijfolie', emoji:'🫒', cat:'Vetten & noten', unit:'eetlepel', gramsPerUnit:13, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:884, protein:0, carbs:0, fat:100} }
+    ]},
+    { id:'pindakaas', name:'Pindakaas', emoji:'🥜', cat:'Vetten & noten', unit:'eetlepel', gramsPerUnit:16, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:588, protein:25, carbs:20, fat:50} }
+    ]},
+    { id:'amandelen', name:'Amandelen', emoji:'🌰', cat:'Vetten & noten', unit:'handje', gramsPerUnit:25, defaultQty:1, variants:[
+      { name:'Naturel', per100:{kcal:579, protein:21, carbs:22, fat:50} }
+    ]},
+    { id:'walnoten', name:'Walnoten', emoji:'🌰', cat:'Vetten & noten', unit:'handje', gramsPerUnit:25, defaultQty:1, variants:[
+      { name:'Naturel', per100:{kcal:654, protein:15, carbs:14, fat:65} }
+    ]},
+    { id:'cashewnoten', name:'Cashewnoten', emoji:'🌰', cat:'Vetten & noten', unit:'handje', gramsPerUnit:25, defaultQty:1, variants:[
+      { name:'Naturel', per100:{kcal:553, protein:18, carbs:30, fat:44} }
+    ]},
+    { id:'honing', name:'Honing', emoji:'🍯', cat:'Overig', unit:'eetlepel', gramsPerUnit:21, defaultQty:1, variants:[
+      { name:'Standaard', per100:{kcal:304, protein:0.3, carbs:82, fat:0} }
+    ]}
+  ];
+
+  var QUICK_FOOD_INDEX = {};
+  QUICK_FOODS.forEach(function(f){ QUICK_FOOD_INDEX[f.id] = f; });
+
+  var quickFoodUsage = {};
+  var quickFoodSelected = null;
+  var quickFoodVariantIdx = 0;
+  var quickFoodCat = 'Alle';
+  var quickFoodQuery = '';
+
+  async function loadQuickFoodUsage(){ quickFoodUsage = await storageGet('settings:foodUsage', {}); }
+
+  function quickFoodGramsPerUnit(food, variant){
+    return (variant && variant.gramsPerUnit) || food.gramsPerUnit;
+  }
+
+  function renderQuickFoodChips(){
+    var el = document.getElementById('quickFoodChips');
+    el.innerHTML = FOOD_CATEGORIES.map(function(c){
+      return '<button class="chip' + (c === quickFoodCat ? ' active' : '') + '" data-cat="'+escapeHtml(c)+'">'+escapeHtml(c)+'</button>';
+    }).join('');
+    el.querySelectorAll('.chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        quickFoodCat = btn.dataset.cat;
+        renderQuickFoodChips();
+        renderQuickFoodGrid();
+      });
+    });
+  }
+
+  function renderQuickFoodGrid(){
+    var q = quickFoodQuery.toLowerCase();
+    var items = QUICK_FOODS.filter(function(f){
+      var catOk = quickFoodCat === 'Alle' || f.cat === quickFoodCat;
+      var qOk = !q || f.name.toLowerCase().indexOf(q) !== -1;
+      return catOk && qOk;
+    }).slice().sort(function(a, b){
+      return (quickFoodUsage[b.id] || 0) - (quickFoodUsage[a.id] || 0);
+    });
+    var grid = document.getElementById('quickFoodGrid');
+    if(items.length === 0){
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">Geen producten gevonden.</div>';
+      return;
+    }
+    grid.innerHTML = items.map(function(f){
+      var count = quickFoodUsage[f.id] || 0;
+      return '<button class="pickercard" data-id="'+f.id+'">'
+        + (count > 1 ? '<span class="fbadge">×'+count+'</span>' : '')
+        + '<span class="femoji">'+f.emoji+'</span><span>'+escapeHtml(f.name)+'</span></button>';
+    }).join('');
+    grid.querySelectorAll('.pickercard').forEach(function(btn){
+      btn.addEventListener('click', function(){ openQuickFoodDetail(btn.dataset.id); });
+    });
+  }
+
+  function openQuickFoodDetail(id){
+    var food = QUICK_FOOD_INDEX[id];
+    if(!food) return;
+    quickFoodSelected = food;
+    quickFoodVariantIdx = 0;
+
+    document.getElementById('quickFoodListStep').style.display = 'none';
+    document.getElementById('quickFoodDetailStep').style.display = 'block';
+    document.getElementById('quickFoodHeader').innerHTML =
+      '<span class="femoji" style="width:34px;text-align:center;">'+food.emoji+'</span><span class="posetext"><b style="color:var(--text);">'+escapeHtml(food.name)+'</b></span>';
+
+    var variantField = document.getElementById('quickFoodVariantField');
+    if(food.variants.length > 1){
+      variantField.style.display = 'block';
+      renderQuickFoodVariantChips();
+    } else {
+      variantField.style.display = 'none';
+    }
+
+    document.getElementById('quickFoodQtyLabel').textContent = 'Hoeveelheid (' + food.unit + ')';
+    document.getElementById('quickFoodQty').value = food.defaultQty;
+    updateQuickFoodPreview();
+  }
+
+  function renderQuickFoodVariantChips(){
+    var food = quickFoodSelected;
+    var el = document.getElementById('quickFoodVariantChips');
+    el.innerHTML = food.variants.map(function(v, i){
+      return '<button class="chip' + (i === quickFoodVariantIdx ? ' active' : '') + '" data-idx="'+i+'">'+escapeHtml(v.name)+'</button>';
+    }).join('');
+    el.querySelectorAll('.chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        quickFoodVariantIdx = parseInt(btn.dataset.idx, 10);
+        renderQuickFoodVariantChips();
+        updateQuickFoodPreview();
+      });
+    });
+  }
+
+  function updateQuickFoodPreview(){
+    var food = quickFoodSelected;
+    if(!food) return;
+    var variant = food.variants[quickFoodVariantIdx];
+    var qty = parseFloat(document.getElementById('quickFoodQty').value) || 0;
+    var grams = qty * quickFoodGramsPerUnit(food, variant);
+    var factor = grams / 100;
+    var p = variant.per100;
+    document.getElementById('quickFoodPreview').innerHTML =
+      '<div class="pmacros">'+qty+' '+food.unit+' ('+Math.round(grams)+'g): '
+      + Math.round(p.kcal * factor) + ' kcal · E' + Math.round(p.protein * factor)
+      + 'g K' + Math.round(p.carbs * factor) + 'g V' + Math.round(p.fat * factor) + 'g</div>';
+  }
+
+  document.getElementById('quickFoodQty').addEventListener('input', updateQuickFoodPreview);
+  document.getElementById('quickFoodMinus').addEventListener('click', function(){
+    var el = document.getElementById('quickFoodQty');
+    var step = parseFloat(el.step) || 1;
+    el.value = Math.max(0, (parseFloat(el.value) || 0) - step);
+    updateQuickFoodPreview();
+  });
+  document.getElementById('quickFoodPlus').addEventListener('click', function(){
+    var el = document.getElementById('quickFoodQty');
+    var step = parseFloat(el.step) || 1;
+    el.value = (parseFloat(el.value) || 0) + step;
+    updateQuickFoodPreview();
+  });
+
+  document.getElementById('quickFoodBackBtn').addEventListener('click', function(){
+    quickFoodSelected = null;
+    document.getElementById('quickFoodDetailStep').style.display = 'none';
+    document.getElementById('quickFoodListStep').style.display = 'block';
+  });
+
+  document.getElementById('quickFoodAddBtn').addEventListener('click', async function(){
+    var food = quickFoodSelected;
+    if(!food) return;
+    var variant = food.variants[quickFoodVariantIdx];
+    var qty = parseFloat(document.getElementById('quickFoodQty').value) || 0;
+    if(qty <= 0){ showToast('Vul een hoeveelheid in.'); return; }
+    var grams = qty * quickFoodGramsPerUnit(food, variant);
+    var factor = grams / 100;
+    var p = variant.per100;
+    var entry = {
+      id: Date.now(), name: food.name + (food.variants.length > 1 ? ' (' + variant.name + ')' : ''),
+      grams: grams, unit: 'g', qtyLabel: qty + ' ' + food.unit,
+      kcal: p.kcal * factor, protein: p.protein * factor, carbs: p.carbs * factor, fat: p.fat * factor
+    };
+    var dk = dateKey(STATE.date);
+    var arr = await loadNutrition(dk);
+    arr.push(entry);
+    await saveNutrition(dk, arr);
+    quickFoodUsage[food.id] = (quickFoodUsage[food.id] || 0) + 1;
+    await storageSet('settings:foodUsage', quickFoodUsage);
+    quickFoodOverlay.classList.remove('active');
+    renderNutritionTab();
+    showToast('Toegevoegd: ' + food.name);
+  });
+
+  var quickFoodOverlay = document.getElementById('quickFoodOverlay');
+  document.getElementById('quickFoodBtn').addEventListener('click', function(){
+    quickFoodQuery = '';
+    document.getElementById('quickFoodSearch').value = '';
+    quickFoodCat = 'Alle';
+    document.getElementById('quickFoodDetailStep').style.display = 'none';
+    document.getElementById('quickFoodListStep').style.display = 'block';
+    renderQuickFoodChips();
+    renderQuickFoodGrid();
+    quickFoodOverlay.classList.add('active');
+  });
+  document.getElementById('closeQuickFood').addEventListener('click', function(){
+    quickFoodOverlay.classList.remove('active');
+  });
+  document.getElementById('quickFoodSearch').addEventListener('input', function(){
+    quickFoodQuery = this.value;
+    renderQuickFoodGrid();
+  });
+
   // ---------- nutrition ----------
   function computeTotals(entries){
     var t = { kcal:0, protein:0, carbs:0, fat:0 };
@@ -1115,7 +1478,7 @@
     list.innerHTML = entries.map(function(e){
       return '<div class="foodrow" data-id="'+e.id+'">'
         + '<div><div class="fname">'+escapeHtml(e.name)+'</div>'
-        + '<div class="fmeta">'+Math.round(e.grams)+(e.unit || 'g')+' · '+Math.round(e.kcal)+' kcal · E'+Math.round(e.protein)+' K'+Math.round(e.carbs)+' V'+Math.round(e.fat)+'</div></div>'
+        + '<div class="fmeta">'+escapeHtml(e.qtyLabel || (Math.round(e.grams)+(e.unit || 'g')))+' · '+Math.round(e.kcal)+' kcal · E'+Math.round(e.protein)+' K'+Math.round(e.carbs)+' V'+Math.round(e.fat)+'</div></div>'
         + '<button class="del" data-id="'+e.id+'" aria-label="Verwijderen">&times;</button></div>';
     }).join('');
     list.querySelectorAll('.del').forEach(function(btn){
@@ -1585,6 +1948,7 @@
     await loadGoals();
     await loadExerciseNames();
     await loadSchema();
+    await loadQuickFoodUsage();
     renderGoalsTab();
     await loadCalcInputs();
     renderSchemaTab();
